@@ -1,1 +1,19 @@
+version: "3.9"
 
+services:
+  hookpad:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - hookpad_data:/data
+    environment:
+      # ⚠️  MUDE ESTAS VARIÁVEIS ANTES DE RODAR EM PRODUÇÃO
+      ADMIN_TOKEN: "admin-mude-isso"          # Token para acessar a UI e API admin
+      BASE_URL: "https://hooks.seudominio.com" # URL pública do serviço
+      EXEC_TIMEOUT: "30"                       # Timeout máximo por execução (segundos)
+      DATA_DIR: "/data"
+
+volumes:
+  hookpad_data:
