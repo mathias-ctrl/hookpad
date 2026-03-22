@@ -1,1 +1,652 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HookPad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0: #0d0e11;
+  --bg1: #13151a;
+  --bg2: #1a1d24;
+  --bg3: #22262f;
+  --bg4: #2a2f3a;
+  --line: #2e3340;
+  --text0: #e8eaf0;
+  --text1: #9ba3b5;
+  --text2: #5c6478;
+  --accent: #3b82f6;
+  --accent2: #1d4ed8;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg0); color: var(--text0); font-family: var(--sans); font-size: 14px; overflow: hidden; }
+
+/* ─ Layout ─ */
+.app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+.topbar { grid-column: 1/-1; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+.topbar-logo { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
+.topbar-logo span { color: var(--text2); }
+.topbar-spacer { flex: 1; }
+.topbar-url { font-family: var(--mono); font-size: 11px; color: var(--text2); background: var(--bg2); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--line); }
+
+/* ─ Sidebar ─ */
+.sidebar { background: var(--bg1); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px; }
+.sidebar-header h2 { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; flex: 1; }
+.btn-new { background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 5px; transition: background .15s; }
+.btn-new:hover { background: var(--accent2); }
+.script-list { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+.script-item { padding: 9px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 2px; transition: background .1s; border: 1px solid transparent; }
+.script-item:hover { background: var(--bg2); }
+.script-item.active { background: var(--bg3); border-color: var(--line); }
+.script-item-name { font-size: 13px; font-weight: 500; color: var(--text0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.script-item-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.method-badge { font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.badge-get  { background: #14532d; color: #86efac; }
+.badge-post { background: #1e3a5f; color: #93c5fd; }
+.badge-off  { background: var(--bg4); color: var(--text2); }
+.script-item-desc { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ─ Main ─ */
+.main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg0); }
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2); }
+.empty-state svg { opacity: .3; }
+.empty-state p { font-size: 13px; }
+
+/* ─ Editor panel ─ */
+.editor-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.panel-tabs { display: flex; align-items: stretch; background: var(--bg1); border-bottom: 1px solid var(--line); padding: 0 16px; gap: 2px; }
+.tab { padding: 10px 14px; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; white-space: nowrap; }
+.tab:hover { color: var(--text0); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-spacer { flex: 1; }
+
+/* ─ Code tab ─ */
+.code-tab { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#monaco-container { flex: 1; }
+
+/* ─ Config tab ─ */
+.config-tab { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+.config-tab.show { display: block; }
+.field-group { margin-bottom: 20px; }
+.field-label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: block; }
+.field-input { width: 100%; background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; color: var(--text0); font-family: var(--sans); font-size: 13px; transition: border-color .15s; outline: none; }
+.field-input:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--text2); }
+textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sans); }
+.method-row { display: flex; gap: 8px; }
+.method-btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; text-align: center; }
+.method-btn.sel-get  { background: #14532d; border-color: #22c55e44; color: #86efac; }
+.method-btn.sel-post { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
+
+/* ─ Token box ─ */
+.token-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.token-val { font-family: var(--mono); font-size: 12px; color: var(--yellow); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-sm { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; white-space: nowrap; }
+.btn-sm:hover { background: var(--bg4); color: var(--text0); }
+.webhook-url-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); word-break: break-all; cursor: pointer; transition: border-color .15s; }
+.webhook-url-box:hover { border-color: var(--accent); }
+
+/* ─ Toggle ─ */
+.toggle-row { display: flex; align-items: center; gap: 12px; }
+.toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg4); border-radius: 10px; transition: .2s; }
+.toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: var(--text2); border-radius: 50%; transition: .2s; }
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(16px); background: #fff; }
+.toggle-label { font-size: 13px; color: var(--text1); }
+
+/* ─ Test tab ─ */
+.test-tab { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.test-tab.show { display: flex; }
+.test-panes { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; gap: 0; }
+.test-pane { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--line); }
+.test-pane:last-child { border-right: none; }
+.pane-header { padding: 10px 14px; background: var(--bg1); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; }
+.pane-body { flex: 1; overflow: auto; }
+#test-input-editor, #test-output { height: 100%; }
+.output-content { padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text1); }
+.output-content.success { color: var(--green); }
+.output-content.error { color: var(--red); }
+.output-meta { padding: 8px 14px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; gap: 16px; font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.meta-ok { color: var(--green); }
+.meta-err { color: var(--red); }
+
+/* ─ Action bar ─ */
+.action-bar { padding: 10px 16px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: background .15s; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-danger { background: transparent; border: 1px solid var(--line); color: var(--red); border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.btn-danger:hover { background: #7f1d1d33; border-color: var(--red); }
+.btn-run { background: #14532d; border: 1px solid #22c55e44; color: #86efac; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+.btn-run:hover { background: #166534; }
+.btn-run:disabled { opacity: .4; cursor: not-allowed; }
+.bar-spacer { flex: 1; }
+.status-msg { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.status-msg.ok  { color: var(--green); }
+.status-msg.err { color: var(--red); }
+
+/* ─ Modal ─ */
+.modal-backdrop { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(3px); }
+.modal-backdrop.hidden { display: none; }
+.modal { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 24px; width: 440px; max-width: 96vw; }
+.modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 18px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.btn-cancel { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 13px; }
+
+/* ─ Scrollbar ─ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--line); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-logo">hook<span>pad</span></span>
+    <div class="topbar-spacer"></div>
+    <span class="topbar-url" id="base-url-display">carregando...</span>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Scripts</h2>
+      <button class="btn-new" onclick="openNewModal()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Novo
+      </button>
+    </div>
+    <div class="script-list" id="script-list">
+      <div style="padding:16px;text-align:center;color:var(--text2);font-size:12px;">Nenhum script ainda</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main" id="main">
+    <div class="empty-state" id="empty-state">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="8" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 20h16M16 24h10M16 28h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <p>Selecione ou crie um script</p>
+    </div>
+
+    <div class="editor-panel" id="editor-panel" style="display:none">
+      <!-- Tabs -->
+      <div class="panel-tabs">
+        <div class="tab active" id="tab-code" onclick="switchTab('code')">Código</div>
+        <div class="tab" id="tab-config" onclick="switchTab('config')">Configuração</div>
+        <div class="tab" id="tab-test" onclick="switchTab('test')">Testar</div>
+        <div class="tab-spacer"></div>
+      </div>
+
+      <!-- Code Tab -->
+      <div class="code-tab" id="pane-code">
+        <div id="monaco-container"></div>
+      </div>
+
+      <!-- Config Tab -->
+      <div class="config-tab" id="pane-config">
+        <div class="field-group">
+          <label class="field-label">Nome do script</label>
+          <input id="cfg-name" class="field-input" placeholder="Meu Script">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Descrição</label>
+          <textarea id="cfg-desc" class="field-input" rows="2" placeholder="O que este script faz..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Método HTTP</label>
+          <div class="method-row">
+            <div class="method-btn" id="method-get" onclick="selectMethod('GET')">GET</div>
+            <div class="method-btn" id="method-post" onclick="selectMethod('POST')">POST</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Status</label>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input type="checkbox" id="cfg-enabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Webhook ativo</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Token de autenticação</label>
+          <div class="token-box">
+            <span class="token-val" id="cfg-token">—</span>
+            <button class="btn-sm" onclick="rotateToken()">Rotacionar</button>
+            <button class="btn-sm" onclick="copyToken()">Copiar</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">URL do Webhook</label>
+          <div class="webhook-url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()" title="Clique para copiar">—</div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Como usar</label>
+          <div style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--text1);line-height:1.8;" id="usage-example"></div>
+        </div>
+      </div>
+
+      <!-- Test Tab -->
+      <div class="test-tab" id="pane-test">
+        <div class="test-panes">
+          <div class="test-pane">
+            <div class="pane-header">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h8v8H2z" stroke="currentColor" stroke-width="1.2" rx="1"/></svg>
+              Params / Body (JSON)
+            </div>
+            <div class="pane-body">
+              <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
+            </div>
+          </div>
+          <div class="test-pane">
+            <div class="pane-header">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Resultado
+            </div>
+            <div class="pane-body" id="test-output">
+              <div class="output-content" style="color:var(--text2);">Execute o script para ver o resultado...</div>
+            </div>
+            <div class="output-meta" id="output-meta" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn-primary" onclick="saveScript()" id="btn-save">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h7l2 2v7H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M4 2v3h5V2M4 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Salvar
+        </button>
+        <button class="btn-run" onclick="runTest()" id="btn-run">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg>
+          Executar
+        </button>
+        <span class="bar-spacer"></span>
+        <span class="status-msg" id="status-msg"></span>
+        <button class="btn-danger" onclick="deleteScript()">Deletar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Script Modal -->
+<div class="modal-backdrop hidden" id="new-modal">
+  <div class="modal">
+    <h3>Novo script</h3>
+    <div class="field-group">
+      <label class="field-label">Nome</label>
+      <input id="new-name" class="field-input" placeholder="meu-script" autofocus>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Descrição (opcional)</label>
+      <input id="new-desc" class="field-input" placeholder="O que este script faz...">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Método HTTP</label>
+      <div class="method-row">
+        <div class="method-btn sel-post" id="new-method-post" onclick="selectNewMethod('POST')">POST</div>
+        <div class="method-btn" id="new-method-get" onclick="selectNewMethod('GET')">GET</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNewModal()">Cancelar</button>
+      <button class="btn-primary" onclick="createScript()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Monaco Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script>
+const ADMIN_TOKEN = localStorage.getItem('admin_token') || promptToken();
+function promptToken() {
+  const t = prompt('Admin token:') || 'admin-mude-isso';
+  localStorage.setItem('admin_token', t);
+  return t;
+}
+
+const API = async (method, path, body) => {
+  const r = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(e.detail || r.statusText);
+  }
+  return r.json();
+};
+
+let scripts = {};
+let currentId = null;
+let codeEditor = null;
+let testEditor = null;
+let newMethod = 'POST';
+let cfgMethod = 'POST';
+
+// ─── Monaco ─────────────────────────────────────────────────────────────────
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+require(['vs/editor/editor.main'], () => {
+  monaco.editor.defineTheme('hookpad', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword', foreground: '93c5fd' },
+      { token: 'string', foreground: '86efac' },
+      { token: 'comment', foreground: '4b5563', fontStyle: 'italic' },
+      { token: 'number', foreground: 'fbbf24' },
+      { token: 'identifier', foreground: 'e8eaf0' },
+    ],
+    colors: {
+      'editor.background': '#0d0e11',
+      'editor.foreground': '#e8eaf0',
+      'editorLineNumber.foreground': '#2e3340',
+      'editorLineNumber.activeForeground': '#5c6478',
+      'editor.selectionBackground': '#3b82f633',
+      'editor.lineHighlightBackground': '#13151a',
+      'editorCursor.foreground': '#3b82f6',
+      'editorIndentGuide.background': '#1a1d24',
+    }
+  });
+
+  codeEditor = monaco.editor.create(document.getElementById('monaco-container'), {
+    language: 'python',
+    theme: 'hookpad',
+    fontSize: 13,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontLigatures: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    padding: { top: 16, bottom: 16 },
+    lineNumbers: 'on',
+    renderLineHighlight: 'gutter',
+    automaticLayout: true,
+    tabSize: 4,
+    insertSpaces: true,
+    value: '# Seu código Python aqui\n# Variáveis injetadas automaticamente:\n# - __params__  → dict com todos os parâmetros recebidos\n# - query params, headers X-, body JSON viram variáveis diretas\n\nprint("Hello from HookPad!")\n',
+  });
+
+  testEditor = monaco.editor.create(document.getElementById('test-input-editor'), {
+    language: 'json',
+    theme: 'hookpad',
+    fontSize: 12,
+    fontFamily: "'JetBrains Mono', monospace",
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    padding: { top: 12 },
+    lineNumbers: 'off',
+    automaticLayout: true,
+    value: '{\n  \n}',
+  });
+
+  loadScripts();
+});
+
+// ─── Load ────────────────────────────────────────────────────────────────────
+async function loadScripts() {
+  try {
+    const list = await API('GET', '/api/scripts');
+    scripts = {};
+    list.forEach(s => scripts[s.id] = s);
+    renderList();
+    document.getElementById('base-url-display').textContent = window.location.origin;
+  } catch(e) {
+    if (e.message.includes('401')) {
+      localStorage.removeItem('admin_token');
+      location.reload();
+    }
+  }
+}
+
+function renderList() {
+  const el = document.getElementById('script-list');
+  const ids = Object.keys(scripts);
+  if (!ids.length) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2);font-size:12px;">Nenhum script ainda</div>';
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const s = scripts[id];
+    const badgeClass = !s.enabled ? 'badge-off' : s.method === 'GET' ? 'badge-get' : 'badge-post';
+    return `<div class="script-item ${currentId === id ? 'active' : ''}" onclick="selectScript('${id}')">
+      <div class="script-item-name">${esc(s.name)}</div>
+      <div class="script-item-meta">
+        <span class="method-badge ${badgeClass}">${s.enabled ? s.method : 'OFF'}</span>
+        <span class="script-item-desc">${esc(s.description || '—')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectScript(id) {
+  currentId = id;
+  const s = scripts[id];
+  renderList();
+
+  // populate code editor
+  if (codeEditor) codeEditor.setValue(s.code || '');
+
+  // populate config
+  document.getElementById('cfg-name').value = s.name;
+  document.getElementById('cfg-desc').value = s.description || '';
+  document.getElementById('cfg-enabled').checked = s.enabled;
+  document.getElementById('cfg-token').textContent = s.token;
+  cfgMethod = s.method;
+  updateMethodButtons();
+
+  const url = s.webhook_url;
+  document.getElementById('cfg-webhook-url').textContent = url;
+  updateUsageExample(s);
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('editor-panel').style.display = 'flex';
+  switchTab('code');
+}
+
+function updateUsageExample(s) {
+  const url = s.webhook_url;
+  const token = s.token;
+  let example = '';
+  if (s.method === 'GET') {
+    example = `# GET com token na query string\ncurl "${url}?token=${token}&param=valor"\n\n# GET com token no header\ncurl -H "X-Token: ${token}" \\\n     "${url}?param=valor"`;
+  } else {
+    example = `# POST com JSON\ncurl -X POST "${url}" \\\n     -H "Content-Type: application/json" \\\n     -H "X-Token: ${token}" \\\n     -d '{"nome": "valor"}'\n\n# POST com token na query string\ncurl -X POST "${url}?token=${token}" \\\n     -H "Content-Type: application/json" \\\n     -d '{"nome": "valor"}'`;
+  }
+  document.getElementById('usage-example').textContent = example;
+}
+
+// ─── Tabs ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['code','config','test'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+  document.getElementById('pane-code').style.display = tab === 'code' ? 'flex' : 'none';
+  document.getElementById('pane-config').classList.toggle('show', tab === 'config');
+  document.getElementById('pane-test').classList.toggle('show', tab === 'test');
+  if (codeEditor) codeEditor.layout();
+  if (testEditor) testEditor.layout();
+}
+
+// ─── Save ────────────────────────────────────────────────────────────────────
+async function saveScript() {
+  if (!currentId) return;
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  setStatus('', '');
+  try {
+    const updated = await API('PUT', `/api/scripts/${currentId}`, {
+      name: document.getElementById('cfg-name').value,
+      description: document.getElementById('cfg-desc').value,
+      code: codeEditor.getValue(),
+      method: cfgMethod,
+      enabled: document.getElementById('cfg-enabled').checked,
+    });
+    scripts[currentId] = updated;
+    renderList();
+    document.getElementById('cfg-webhook-url').textContent = updated.webhook_url;
+    updateUsageExample(updated);
+    setStatus('Salvo!', 'ok');
+  } catch(e) {
+    setStatus('Erro: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+// ─── Run Test ────────────────────────────────────────────────────────────────
+async function runTest() {
+  if (!currentId) return;
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-dasharray="8 8"><animateTransform attributeName="transform" type="rotate" values="0 6.5 6.5;360 6.5 6.5" dur=".8s" repeatCount="indefinite"/></circle></svg> Executando...';
+
+  document.getElementById('test-output').innerHTML = '<div class="output-content" style="color:var(--text2);">Executando...</div>';
+  document.getElementById('output-meta').style.display = 'none';
+
+  // Auto-save code first
+  await saveScript();
+
+  let params = {};
+  try { params = JSON.parse(testEditor.getValue()); } catch(e) {}
+
+  try {
+    const result = await API('POST', `/api/scripts/${currentId}/test`, params);
+    const out = document.getElementById('test-output');
+    const hasOut = result.stdout || result.stderr;
+    out.innerHTML = `<div class="output-content ${result.success ? 'success' : 'error'}">${esc(result.stdout || '')}${result.stderr ? '\n\n[stderr]\n' + esc(result.stderr) : ''}</div>`;
+
+    const meta = document.getElementById('output-meta');
+    meta.style.display = 'flex';
+    meta.innerHTML = `
+      <span class="${result.success ? 'meta-ok' : 'meta-err'}">${result.success ? '✓ sucesso' : '✗ erro'}</span>
+      <span>${result.duration_ms}ms</span>
+      ${result.installed_packages.length ? `<span>instalados: ${result.installed_packages.join(', ')}</span>` : ''}
+      <span>${result.timestamp.split('T')[1].slice(0,8)}</span>
+    `;
+  } catch(e) {
+    document.getElementById('test-output').innerHTML = `<div class="output-content error">${esc(e.message)}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg> Executar';
+}
+
+// ─── Delete ─────────────────────────────────────────────────────────────────
+async function deleteScript() {
+  if (!currentId) return;
+  if (!confirm(`Deletar "${scripts[currentId]?.name}"?`)) return;
+  try {
+    await API('DELETE', `/api/scripts/${currentId}`);
+    delete scripts[currentId];
+    currentId = null;
+    renderList();
+    document.getElementById('empty-state').style.display = 'flex';
+    document.getElementById('editor-panel').style.display = 'none';
+  } catch(e) {
+    setStatus('Erro: ' + e.message, 'err');
+  }
+}
+
+// ─── Token ───────────────────────────────────────────────────────────────────
+async function rotateToken() {
+  if (!currentId) return;
+  if (!confirm('Rotacionar token? O token atual deixará de funcionar.')) return;
+  try {
+    const r = await API('POST', `/api/scripts/${currentId}/rotate-token`);
+    scripts[currentId].token = r.token;
+    document.getElementById('cfg-token').textContent = r.token;
+    updateUsageExample(scripts[currentId]);
+    setStatus('Token rotacionado!', 'ok');
+  } catch(e) {
+    setStatus('Erro: ' + e.message, 'err');
+  }
+}
+function copyToken() {
+  navigator.clipboard.writeText(document.getElementById('cfg-token').textContent);
+  setStatus('Token copiado!', 'ok');
+}
+function copyWebhookUrl() {
+  navigator.clipboard.writeText(document.getElementById('cfg-webhook-url').textContent);
+  setStatus('URL copiada!', 'ok');
+}
+
+// ─── New Modal ───────────────────────────────────────────────────────────────
+function openNewModal() {
+  document.getElementById('new-modal').classList.remove('hidden');
+  document.getElementById('new-name').focus();
+}
+function closeNewModal() {
+  document.getElementById('new-modal').classList.add('hidden');
+}
+function selectNewMethod(m) {
+  newMethod = m;
+  document.getElementById('new-method-get').className = 'method-btn' + (m === 'GET' ? ' sel-get' : '');
+  document.getElementById('new-method-post').className = 'method-btn' + (m === 'POST' ? ' sel-post' : '');
+}
+async function createScript() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) return;
+  try {
+    const s = await API('POST', '/api/scripts', {
+      name,
+      description: document.getElementById('new-desc').value,
+      method: newMethod,
+      code: '# Seu código Python aqui\n# Variáveis injetadas automaticamente:\n# - __params__  → dict com todos os parâmetros recebidos\n# Exemplo: print(__params__)\n\nprint("Hello from HookPad!")\n',
+    });
+    scripts[s.id] = s;
+    closeNewModal();
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-desc').value = '';
+    renderList();
+    selectScript(s.id);
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function selectMethod(m) {
+  cfgMethod = m;
+  updateMethodButtons();
+}
+function updateMethodButtons() {
+  document.getElementById('method-get').className = 'method-btn' + (cfgMethod === 'GET' ? ' sel-get' : '');
+  document.getElementById('method-post').className = 'method-btn' + (cfgMethod === 'POST' ? ' sel-post' : '');
+}
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' ' + type : '');
+  if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Enter no modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNewModal();
+  if (e.key === 'Enter' && !document.getElementById('new-modal').classList.contains('hidden')) createScript();
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveScript(); }
+});
+</script>
+</body>
+</html>
