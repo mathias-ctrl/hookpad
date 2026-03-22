@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,35 +8,31 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg0: #0d0e11;
-  --bg1: #13151a;
-  --bg2: #1a1d24;
-  --bg3: #22262f;
-  --bg4: #2a2f3a;
-  --line: #2e3340;
-  --text0: #e8eaf0;
-  --text1: #9ba3b5;
-  --text2: #5c6478;
-  --accent: #3b82f6;
-  --accent2: #1d4ed8;
-  --green: #22c55e;
-  --red: #ef4444;
-  --yellow: #eab308;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'IBM Plex Sans', sans-serif;
+  --bg0: #0d0e11; --bg1: #13151a; --bg2: #1a1d24; --bg3: #22262f; --bg4: #2a2f3a;
+  --line: #2e3340; --text0: #e8eaf0; --text1: #9ba3b5; --text2: #5c6478;
+  --accent: #3b82f6; --accent2: #1d4ed8;
+  --green: #22c55e; --green-bg: #14532d; --green-border: #22c55e44;
+  --red: #ef4444; --red-bg: #7f1d1d33; --yellow: #eab308; --yellow-bg: #78350f55;
+  --purple: #a78bfa; --purple-bg: #3b0764aa;
+  --mono: 'JetBrains Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg0); color: var(--text0); font-family: var(--sans); font-size: 14px; overflow: hidden; }
 
-/* ─ Layout ─ */
+/* Layout */
 .app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
 .topbar { grid-column: 1/-1; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--bg1); border-bottom: 1px solid var(--line); }
 .topbar-logo { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
 .topbar-logo span { color: var(--text2); }
 .topbar-spacer { flex: 1; }
-.topbar-url { font-family: var(--mono); font-size: 11px; color: var(--text2); background: var(--bg2); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--line); }
+.topbar-nav { display: flex; gap: 4px; }
+.topbar-nav-btn { background: none; border: none; color: var(--text2); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-family: var(--sans); font-size: 12px; font-weight: 500; transition: all .15s; }
+.topbar-nav-btn:hover { background: var(--bg2); color: var(--text0); }
+.topbar-nav-btn.active { background: var(--bg3); color: var(--text0); }
+.topbar-settings { background: none; border: none; color: var(--text2); padding: 6px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; transition: all .15s; }
+.topbar-settings:hover { background: var(--bg2); color: var(--text0); }
 
-/* ─ Sidebar ─ */
+/* Sidebar */
 .sidebar { background: var(--bg1); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-header { padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px; }
 .sidebar-header h2 { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; flex: 1; }
@@ -50,18 +45,20 @@ html, body { height: 100%; background: var(--bg0); color: var(--text0); font-fam
 .script-item-name { font-size: 13px; font-weight: 500; color: var(--text0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .script-item-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
 .method-badge { font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
-.badge-get  { background: #14532d; color: #86efac; }
-.badge-post { background: #1e3a5f; color: #93c5fd; }
-.badge-off  { background: var(--bg4); color: var(--text2); }
+.badge-get    { background: #14532d; color: #86efac; }
+.badge-post   { background: #1e3a5f; color: #93c5fd; }
+.badge-off    { background: var(--bg4); color: var(--text2); }
+.badge-sched  { background: #3b0764; color: #c4b5fd; }
+.badge-exp    { background: #78350f; color: #fcd34d; }
 .script-item-desc { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ─ Main ─ */
+/* Main */
 .main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg0); }
+.page { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.page.show { display: flex; }
 .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2); }
-.empty-state svg { opacity: .3; }
-.empty-state p { font-size: 13px; }
 
-/* ─ Editor panel ─ */
+/* Editor panel */
 .editor-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .panel-tabs { display: flex; align-items: stretch; background: var(--bg1); border-bottom: 1px solid var(--line); padding: 0 16px; gap: 2px; }
 .tab { padding: 10px 14px; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; white-space: nowrap; }
@@ -69,33 +66,69 @@ html, body { height: 100%; background: var(--bg0); color: var(--text0); font-fam
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-spacer { flex: 1; }
 
-/* ─ Code tab ─ */
+/* Code tab */
 .code-tab { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 #monaco-container { flex: 1; }
 
-/* ─ Config tab ─ */
+/* Config tab */
 .config-tab { flex: 1; overflow-y: auto; padding: 24px; display: none; }
 .config-tab.show { display: block; }
 .field-group { margin-bottom: 20px; }
-.field-label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: block; }
+.field-label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.field-hint { font-size: 11px; color: var(--text2); font-weight: 400; text-transform: none; letter-spacing: 0; }
 .field-input { width: 100%; background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; color: var(--text0); font-family: var(--sans); font-size: 13px; transition: border-color .15s; outline: none; }
 .field-input:focus { border-color: var(--accent); }
 .field-input::placeholder { color: var(--text2); }
-textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sans); }
+textarea.field-input { resize: vertical; min-height: 60px; }
 .method-row { display: flex; gap: 8px; }
 .method-btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; text-align: center; }
 .method-btn.sel-get  { background: #14532d; border-color: #22c55e44; color: #86efac; }
 .method-btn.sel-post { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
 
-/* ─ Token box ─ */
-.token-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
-.token-val { font-family: var(--mono); font-size: 12px; color: var(--yellow); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.btn-sm { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; white-space: nowrap; }
-.btn-sm:hover { background: var(--bg4); color: var(--text0); }
-.webhook-url-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); word-break: break-all; cursor: pointer; transition: border-color .15s; }
-.webhook-url-box:hover { border-color: var(--accent); }
+/* Trigger selector */
+.trigger-row { display: flex; gap: 8px; }
+.trigger-btn { flex: 1; padding: 10px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-family: var(--sans); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.trigger-btn small { font-size: 10px; color: var(--text2); }
+.trigger-btn.sel-webhook { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
+.trigger-btn.sel-webhook small { color: #93c5fd99; }
+.trigger-btn.sel-schedule { background: #3b0764; border-color: #a78bfa44; color: #c4b5fd; }
+.trigger-btn.sel-schedule small { color: #c4b5fd99; }
 
-/* ─ Toggle ─ */
+/* Schedule options */
+.schedule-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.schedule-opt { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-size: 12px; cursor: pointer; transition: all .15s; text-align: center; }
+.schedule-opt:hover { border-color: var(--purple); color: var(--text0); }
+.schedule-opt.sel { background: var(--purple-bg); border-color: #a78bfa44; color: var(--purple); }
+
+/* Token box */
+.token-section { background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.token-no-token { padding: 16px; text-align: center; }
+.token-no-token p { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.token-has-token { padding: 12px 14px; }
+.token-val-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.token-val { font-family: var(--mono); font-size: 12px; color: var(--yellow); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--bg3); padding: 6px 10px; border-radius: 5px; border: 1px solid var(--line); }
+.token-meta { display: flex; align-items: center; justify-content: space-between; }
+.token-expiry { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.token-expiry.expired { color: var(--red); }
+.token-expiry.active { color: var(--green); }
+.token-actions { display: flex; gap: 6px; }
+.generate-token-form { padding: 12px 14px; border-top: 1px solid var(--line); }
+.generate-token-form p { font-size: 11px; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
+.expiry-opts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.expiry-opt { padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg3); color: var(--text1); font-size: 11px; cursor: pointer; transition: all .15s; font-family: var(--mono); }
+.expiry-opt:hover { border-color: var(--yellow); color: var(--yellow); }
+.expiry-opt.sel { background: var(--yellow-bg); border-color: #eab30844; color: var(--yellow); }
+
+/* Webhook URL */
+.webhook-url-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); word-break: break-all; cursor: pointer; transition: border-color .15s; display: flex; align-items: center; gap: 8px; }
+.webhook-url-box:hover { border-color: var(--accent); }
+.webhook-url-text { flex: 1; }
+.no-token-url { color: var(--text2); font-style: italic; }
+
+/* Usage example */
+.usage-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: var(--text1); line-height: 1.8; white-space: pre; overflow-x: auto; }
+
+/* Toggle */
 .toggle-row { display: flex; align-items: center; gap: 12px; }
 .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
 .toggle input { opacity: 0; width: 0; height: 0; }
@@ -105,46 +138,91 @@ textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sa
 .toggle input:checked + .toggle-slider:before { transform: translateX(16px); background: #fff; }
 .toggle-label { font-size: 13px; color: var(--text1); }
 
-/* ─ Test tab ─ */
+/* Test tab */
 .test-tab { flex: 1; display: none; flex-direction: column; overflow: hidden; }
 .test-tab.show { display: flex; }
-.test-panes { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; gap: 0; }
+.test-panes { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
 .test-pane { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--line); }
 .test-pane:last-child { border-right: none; }
-.pane-header { padding: 10px 14px; background: var(--bg1); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; }
+.pane-header { padding: 9px 14px; background: var(--bg1); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; }
+.pane-header-hint { font-size: 10px; color: var(--accent); font-weight: 400; text-transform: none; letter-spacing: 0; cursor: pointer; margin-left: auto; }
+.pane-header-hint:hover { color: var(--text0); }
 .pane-body { flex: 1; overflow: auto; }
-#test-input-editor, #test-output { height: 100%; }
 .output-content { padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text1); }
 .output-content.success { color: var(--green); }
 .output-content.error { color: var(--red); }
-.output-meta { padding: 8px 14px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; gap: 16px; font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.output-meta { padding: 8px 14px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; gap: 16px; font-size: 11px; color: var(--text2); font-family: var(--mono); flex-wrap: wrap; }
 .meta-ok { color: var(--green); }
 .meta-err { color: var(--red); }
+.meta-pkg { color: var(--purple); }
 
-/* ─ Action bar ─ */
+/* History tab */
+.history-tab { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.history-tab.show { display: flex; }
+.history-header { padding: 10px 16px; background: var(--bg1); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.history-list { flex: 1; overflow-y: auto; }
+.history-empty { padding: 40px; text-align: center; color: var(--text2); font-size: 13px; }
+.run-item { padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .1s; display: flex; align-items: flex-start; gap: 12px; }
+.run-item:hover { background: var(--bg1); }
+.run-status { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.run-ok   { background: var(--green); }
+.run-fail { background: var(--red); }
+.run-body { flex: 1; min-width: 0; }
+.run-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.run-time { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.run-trigger { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-weight: 600; }
+.trig-webhook  { background: #1e3a5f; color: #93c5fd; }
+.trig-schedule { background: #3b0764; color: #c4b5fd; }
+.trig-test     { background: var(--bg4); color: var(--text2); }
+.run-duration { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-left: auto; }
+.run-preview { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+.run-detail { display: none; padding: 10px 16px 14px 36px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+.run-detail.show { display: block; }
+.run-detail pre { font-family: var(--mono); font-size: 11px; color: var(--text1); white-space: pre-wrap; word-break: break-word; line-height: 1.6; max-height: 200px; overflow-y: auto; }
+.run-detail-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; margin-top: 10px; }
+.run-detail-label:first-child { margin-top: 0; }
+
+/* Global history page */
+.history-page { flex: 1; overflow: hidden; display: none; flex-direction: column; }
+.history-page.show { display: flex; }
+.history-page-header { padding: 16px 20px; background: var(--bg1); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+.history-page-header h2 { font-size: 15px; font-weight: 500; }
+
+/* Action bar */
 .action-bar { padding: 10px 16px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
 .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: background .15s; }
 .btn-primary:hover { background: var(--accent2); }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-danger { background: transparent; border: 1px solid var(--line); color: var(--red); border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
-.btn-danger:hover { background: #7f1d1d33; border-color: var(--red); }
-.btn-run { background: #14532d; border: 1px solid #22c55e44; color: #86efac; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+.btn-danger:hover { background: var(--red-bg); border-color: var(--red); }
+.btn-run { background: var(--green-bg); border: 1px solid var(--green-border); color: #86efac; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: all .15s; }
 .btn-run:hover { background: #166534; }
 .btn-run:disabled { opacity: .4; cursor: not-allowed; }
+.btn-sm { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; white-space: nowrap; }
+.btn-sm:hover { background: var(--bg4); color: var(--text0); }
+.btn-sm.danger { color: var(--red); }
+.btn-sm.danger:hover { background: var(--red-bg); border-color: var(--red); }
 .bar-spacer { flex: 1; }
 .status-msg { font-size: 12px; color: var(--text2); font-family: var(--mono); }
 .status-msg.ok  { color: var(--green); }
 .status-msg.err { color: var(--red); }
 
-/* ─ Modal ─ */
+/* Settings modal */
 .modal-backdrop { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(3px); }
 .modal-backdrop.hidden { display: none; }
-.modal { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 24px; width: 440px; max-width: 96vw; }
+.modal { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 24px; width: 400px; max-width: 96vw; }
 .modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 18px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 .btn-cancel { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 13px; }
+.history-days-opts { display: flex; gap: 8px; }
+.history-days-opt { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg3); color: var(--text1); font-size: 13px; cursor: pointer; transition: all .15s; text-align: center; }
+.history-days-opt:hover { border-color: var(--accent); color: var(--text0); }
+.history-days-opt.sel { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
 
-/* ─ Scrollbar ─ */
+/* Divider */
+.config-section-title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin: 24px 0 14px; padding-top: 20px; border-top: 1px solid var(--line); }
+
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
@@ -158,7 +236,13 @@ textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sa
   <div class="topbar">
     <span class="topbar-logo">hook<span>pad</span></span>
     <div class="topbar-spacer"></div>
-    <span class="topbar-url" id="base-url-display">carregando...</span>
+    <div class="topbar-nav">
+      <button class="topbar-nav-btn active" id="nav-scripts" onclick="showPage('scripts')">Scripts</button>
+      <button class="topbar-nav-btn" id="nav-history" onclick="showPage('history')">Histórico</button>
+    </div>
+    <button class="topbar-settings" onclick="openSettings()" title="Configurações">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </button>
   </div>
 
   <!-- Sidebar -->
@@ -177,113 +261,209 @@ textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sa
 
   <!-- Main -->
   <div class="main" id="main">
-    <div class="empty-state" id="empty-state">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <rect x="8" y="8" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2"/>
-        <path d="M16 20h16M16 24h10M16 28h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <p>Selecione ou crie um script</p>
+
+    <!-- Scripts page -->
+    <div class="page show" id="page-scripts">
+      <div class="empty-state" id="empty-state">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="8" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2"/><path d="M16 20h16M16 24h10M16 28h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <p>Selecione ou crie um script</p>
+      </div>
+
+      <div class="editor-panel" id="editor-panel" style="display:none">
+        <div class="panel-tabs">
+          <div class="tab active" id="tab-code"    onclick="switchTab('code')">Código</div>
+          <div class="tab"        id="tab-config"  onclick="switchTab('config')">Configuração</div>
+          <div class="tab"        id="tab-test"    onclick="switchTab('test')">Testar</div>
+          <div class="tab"        id="tab-history" onclick="switchTab('history')">Histórico</div>
+          <div class="tab-spacer"></div>
+        </div>
+
+        <!-- Code Tab -->
+        <div class="code-tab" id="pane-code">
+          <div id="monaco-container"></div>
+        </div>
+
+        <!-- Config Tab -->
+        <div class="config-tab" id="pane-config">
+          <div class="field-group">
+            <label class="field-label">Nome</label>
+            <input id="cfg-name" class="field-input" placeholder="meu-script">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Descrição</label>
+            <textarea id="cfg-desc" class="field-input" rows="2" placeholder="O que este script faz..."></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Status</label>
+            <div class="toggle-row">
+              <label class="toggle"><input type="checkbox" id="cfg-enabled" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Script ativo</span>
+            </div>
+          </div>
+
+          <div class="config-section-title">Trigger</div>
+          <div class="field-group">
+            <div class="trigger-row">
+              <div class="trigger-btn sel-webhook" id="trig-webhook" onclick="selectTrigger('webhook')">
+                🔗 Webhook
+                <small>Chamado via HTTP</small>
+              </div>
+              <div class="trigger-btn" id="trig-schedule" onclick="selectTrigger('schedule')">
+                🕐 Schedule
+                <small>Execução agendada</small>
+              </div>
+            </div>
+          </div>
+
+          <div id="webhook-config">
+            <div class="field-group">
+              <label class="field-label">Método HTTP</label>
+              <div class="method-row">
+                <div class="method-btn" id="method-get"  onclick="selectMethod('GET')">GET</div>
+                <div class="method-btn" id="method-post" onclick="selectMethod('POST')">POST</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="schedule-config" style="display:none">
+            <div class="field-group">
+              <label class="field-label">Intervalo de execução</label>
+              <div class="schedule-options">
+                <div class="schedule-opt" id="sched-5min"   onclick="selectSchedule('5min')">A cada 5 min</div>
+                <div class="schedule-opt" id="sched-1h"     onclick="selectSchedule('1h')">A cada 1 hora</div>
+                <div class="schedule-opt" id="sched-daily"  onclick="selectSchedule('daily')">Diário</div>
+                <div class="schedule-opt" id="sched-weekly" onclick="selectSchedule('weekly')">Semanal</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-section-title">Token de autenticação</div>
+          <div class="field-group">
+            <div class="token-section" id="token-section">
+              <!-- Sem token -->
+              <div class="token-no-token" id="token-empty">
+                <p>Nenhum token gerado. Gere um token para ativar o webhook.</p>
+                <div class="generate-token-form">
+                  <p>Expiração do token</p>
+                  <div class="expiry-opts">
+                    <div class="expiry-opt sel" id="expiry-never"  onclick="selectExpiry('never')">Nunca</div>
+                    <div class="expiry-opt"     id="expiry-1h"     onclick="selectExpiry('1h')">1h</div>
+                    <div class="expiry-opt"     id="expiry-24h"    onclick="selectExpiry('24h')">24h</div>
+                    <div class="expiry-opt"     id="expiry-7d"     onclick="selectExpiry('7d')">7 dias</div>
+                    <div class="expiry-opt"     id="expiry-30d"    onclick="selectExpiry('30d')">30 dias</div>
+                  </div>
+                  <button class="btn-primary" onclick="generateToken()" style="width:100%">Gerar token</button>
+                </div>
+              </div>
+              <!-- Com token -->
+              <div class="token-has-token" id="token-filled" style="display:none">
+                <div class="token-val-row">
+                  <div class="token-val" id="cfg-token">—</div>
+                  <button class="btn-sm" onclick="copyToken()">Copiar</button>
+                </div>
+                <div class="token-meta">
+                  <span class="token-expiry" id="token-expiry-label">—</span>
+                  <div class="token-actions">
+                    <button class="btn-sm" onclick="showRegenerateForm()">Novo token</button>
+                    <button class="btn-sm danger" onclick="revokeToken()">Revogar</button>
+                  </div>
+                </div>
+                <!-- Regen form (hidden by default) -->
+                <div id="regen-form" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+                  <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:8px;">Nova expiração</p>
+                  <div class="expiry-opts">
+                    <div class="expiry-opt sel" id="rexpiry-never" onclick="selectReExpiry('never')">Nunca</div>
+                    <div class="expiry-opt" id="rexpiry-1h"    onclick="selectReExpiry('1h')">1h</div>
+                    <div class="expiry-opt" id="rexpiry-24h"   onclick="selectReExpiry('24h')">24h</div>
+                    <div class="expiry-opt" id="rexpiry-7d"    onclick="selectReExpiry('7d')">7 dias</div>
+                    <div class="expiry-opt" id="rexpiry-30d"   onclick="selectReExpiry('30d')">30 dias</div>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button class="btn-sm" onclick="document.getElementById('regen-form').style.display='none'" style="flex:1">Cancelar</button>
+                    <button class="btn-primary" onclick="generateToken(true)" style="flex:2">Gerar novo</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-section-title">Webhook URL</div>
+          <div class="field-group">
+            <div class="webhook-url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()" title="Clique para copiar">
+              <span class="webhook-url-text no-token-url" id="webhook-url-text">Gere um token para ver a URL</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.4"><path d="M5 2H2v8h8V7M7 2h3v3M10 2L5 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <div class="field-group" id="usage-example-section" style="display:none">
+            <label class="field-label">Como usar</label>
+            <div class="usage-box" id="usage-example"></div>
+          </div>
+        </div>
+
+        <!-- Test Tab -->
+        <div class="test-tab" id="pane-test">
+          <div class="test-panes">
+            <div class="test-pane">
+              <div class="pane-header">
+                Params / Body (JSON)
+                <span class="pane-header-hint" id="fill-params-hint" onclick="fillDetectedParams()" title="Preencher com params detectados no código">↙ Auto-preencher</span>
+              </div>
+              <div class="pane-body">
+                <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
+              </div>
+            </div>
+            <div class="test-pane">
+              <div class="pane-header">Resultado</div>
+              <div class="pane-body" id="test-output">
+                <div class="output-content" style="color:var(--text2);">Execute o script para ver o resultado...</div>
+              </div>
+              <div class="output-meta" id="output-meta" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Tab (per script) -->
+        <div class="history-tab" id="pane-history">
+          <div class="history-header">
+            <span style="font-size:12px;color:var(--text2);">Últimas execuções deste script</span>
+            <div style="flex:1"></div>
+            <button class="btn-sm danger" onclick="clearScriptHistory()">Limpar histórico</button>
+          </div>
+          <div class="history-list" id="script-history-list">
+            <div class="history-empty">Nenhuma execução ainda</div>
+          </div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="action-bar">
+          <button class="btn-primary" onclick="saveScript()" id="btn-save">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h7l2 2v7H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M4 2v3h5V2M4 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Salvar
+          </button>
+          <button class="btn-run" onclick="runTest()" id="btn-run">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg>
+            Executar
+          </button>
+          <span class="bar-spacer"></span>
+          <span class="status-msg" id="status-msg"></span>
+          <button class="btn-danger" onclick="deleteScript()">Deletar</button>
+        </div>
+      </div>
     </div>
 
-    <div class="editor-panel" id="editor-panel" style="display:none">
-      <!-- Tabs -->
-      <div class="panel-tabs">
-        <div class="tab active" id="tab-code" onclick="switchTab('code')">Código</div>
-        <div class="tab" id="tab-config" onclick="switchTab('config')">Configuração</div>
-        <div class="tab" id="tab-test" onclick="switchTab('test')">Testar</div>
-        <div class="tab-spacer"></div>
+    <!-- History page (global) -->
+    <div class="page" id="page-history">
+      <div class="history-page-header">
+        <h2>Histórico global</h2>
+        <div style="flex:1"></div>
+        <button class="btn-sm danger" onclick="clearAllHistory()">Limpar tudo</button>
       </div>
-
-      <!-- Code Tab -->
-      <div class="code-tab" id="pane-code">
-        <div id="monaco-container"></div>
-      </div>
-
-      <!-- Config Tab -->
-      <div class="config-tab" id="pane-config">
-        <div class="field-group">
-          <label class="field-label">Nome do script</label>
-          <input id="cfg-name" class="field-input" placeholder="Meu Script">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Descrição</label>
-          <textarea id="cfg-desc" class="field-input" rows="2" placeholder="O que este script faz..."></textarea>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Método HTTP</label>
-          <div class="method-row">
-            <div class="method-btn" id="method-get" onclick="selectMethod('GET')">GET</div>
-            <div class="method-btn" id="method-post" onclick="selectMethod('POST')">POST</div>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Status</label>
-          <div class="toggle-row">
-            <label class="toggle">
-              <input type="checkbox" id="cfg-enabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-label">Webhook ativo</span>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Token de autenticação</label>
-          <div class="token-box">
-            <span class="token-val" id="cfg-token">—</span>
-            <button class="btn-sm" onclick="rotateToken()">Rotacionar</button>
-            <button class="btn-sm" onclick="copyToken()">Copiar</button>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">URL do Webhook</label>
-          <div class="webhook-url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()" title="Clique para copiar">—</div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Como usar</label>
-          <div style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--text1);line-height:1.8;" id="usage-example"></div>
-        </div>
-      </div>
-
-      <!-- Test Tab -->
-      <div class="test-tab" id="pane-test">
-        <div class="test-panes">
-          <div class="test-pane">
-            <div class="pane-header">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h8v8H2z" stroke="currentColor" stroke-width="1.2" rx="1"/></svg>
-              Params / Body (JSON)
-            </div>
-            <div class="pane-body">
-              <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
-            </div>
-          </div>
-          <div class="test-pane">
-            <div class="pane-header">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M4 6l1.5 1.5L8 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Resultado
-            </div>
-            <div class="pane-body" id="test-output">
-              <div class="output-content" style="color:var(--text2);">Execute o script para ver o resultado...</div>
-            </div>
-            <div class="output-meta" id="output-meta" style="display:none"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action bar -->
-      <div class="action-bar">
-        <button class="btn-primary" onclick="saveScript()" id="btn-save">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h7l2 2v7H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M4 2v3h5V2M4 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Salvar
-        </button>
-        <button class="btn-run" onclick="runTest()" id="btn-run">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg>
-          Executar
-        </button>
-        <span class="bar-spacer"></span>
-        <span class="status-msg" id="status-msg"></span>
-        <button class="btn-danger" onclick="deleteScript()">Deletar</button>
+      <div class="history-list" id="global-history-list" style="flex:1;overflow-y:auto;">
+        <div class="history-empty">Carregando...</div>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -299,13 +479,6 @@ textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sa
       <label class="field-label">Descrição (opcional)</label>
       <input id="new-desc" class="field-input" placeholder="O que este script faz...">
     </div>
-    <div class="field-group">
-      <label class="field-label">Método HTTP</label>
-      <div class="method-row">
-        <div class="method-btn sel-post" id="new-method-post" onclick="selectNewMethod('POST')">POST</div>
-        <div class="method-btn" id="new-method-get" onclick="selectNewMethod('GET')">GET</div>
-      </div>
-    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeNewModal()">Cancelar</button>
       <button class="btn-primary" onclick="createScript()">Criar</button>
@@ -313,48 +486,73 @@ textarea.field-input { resize: vertical; min-height: 60px; font-family: var(--sa
   </div>
 </div>
 
-<!-- Monaco Editor -->
+<!-- Settings Modal -->
+<div class="modal-backdrop hidden" id="settings-modal">
+  <div class="modal">
+    <h3>Configurações</h3>
+    <div class="field-group">
+      <label class="field-label">Retenção do histórico</label>
+      <div class="history-days-opts">
+        <div class="history-days-opt" id="hdays-30"  onclick="selectHistoryDays(30)">30 dias</div>
+        <div class="history-days-opt" id="hdays-60"  onclick="selectHistoryDays(60)">60 dias</div>
+        <div class="history-days-opt" id="hdays-90"  onclick="selectHistoryDays(90)">90 dias</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">Fechar</button>
+      <button class="btn-primary" onclick="saveSettings()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
-const ADMIN_TOKEN = localStorage.getItem('admin_token') || promptToken();
-function promptToken() {
+// ─── State ───────────────────────────────────────────────────────────────────
+let ADMIN_TOKEN = localStorage.getItem('admin_token') || promptAdminToken();
+let BASE_URL = '';
+let scripts = {};
+let currentId = null;
+let codeEditor = null;
+let testEditor = null;
+let cfgMethod = 'POST';
+let cfgTrigger = 'webhook';
+let cfgSchedule = null;
+let selectedExpiry = 'never';
+let selectedReExpiry = 'never';
+let selectedHistoryDays = 30;
+let expandedRuns = new Set();
+
+function promptAdminToken() {
   const t = prompt('Admin token:') || 'admin-mude-isso';
   localStorage.setItem('admin_token', t);
   return t;
 }
 
+// ─── API ─────────────────────────────────────────────────────────────────────
 const API = async (method, path, body) => {
   const r = await fetch(path, {
     method,
     headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!r.ok) {
     const e = await r.json().catch(() => ({ detail: r.statusText }));
+    if (r.status === 401) { localStorage.removeItem('admin_token'); location.reload(); }
     throw new Error(e.detail || r.statusText);
   }
   return r.json();
 };
 
-let scripts = {};
-let currentId = null;
-let codeEditor = null;
-let testEditor = null;
-let newMethod = 'POST';
-let cfgMethod = 'POST';
-
-// ─── Monaco ─────────────────────────────────────────────────────────────────
+// ─── Monaco ──────────────────────────────────────────────────────────────────
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
 require(['vs/editor/editor.main'], () => {
   monaco.editor.defineTheme('hookpad', {
-    base: 'vs-dark',
-    inherit: true,
+    base: 'vs-dark', inherit: true,
     rules: [
-      { token: 'keyword', foreground: '93c5fd' },
-      { token: 'string', foreground: '86efac' },
-      { token: 'comment', foreground: '4b5563', fontStyle: 'italic' },
-      { token: 'number', foreground: 'fbbf24' },
-      { token: 'identifier', foreground: 'e8eaf0' },
+      { token: 'keyword',    foreground: '93c5fd' },
+      { token: 'string',     foreground: '86efac' },
+      { token: 'comment',    foreground: '4b5563', fontStyle: 'italic' },
+      { token: 'number',     foreground: 'fbbf24' },
     ],
     colors: {
       'editor.background': '#0d0e11',
@@ -364,12 +562,10 @@ require(['vs/editor/editor.main'], () => {
       'editor.selectionBackground': '#3b82f633',
       'editor.lineHighlightBackground': '#13151a',
       'editorCursor.foreground': '#3b82f6',
-      'editorIndentGuide.background': '#1a1d24',
     }
   });
 
-  codeEditor = monaco.editor.create(document.getElementById('monaco-container'), {
-    language: 'python',
+  const editorOpts = {
     theme: 'hookpad',
     fontSize: 13,
     fontFamily: "'JetBrains Mono', monospace",
@@ -377,44 +573,65 @@ require(['vs/editor/editor.main'], () => {
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     padding: { top: 16, bottom: 16 },
-    lineNumbers: 'on',
-    renderLineHighlight: 'gutter',
     automaticLayout: true,
     tabSize: 4,
     insertSpaces: true,
-    value: '# Seu código Python aqui\n# Variáveis injetadas automaticamente:\n# - __params__  → dict com todos os parâmetros recebidos\n# - query params, headers X-, body JSON viram variáveis diretas\n\nprint("Hello from HookPad!")\n',
+  };
+
+  codeEditor = monaco.editor.create(document.getElementById('monaco-container'), {
+    ...editorOpts,
+    language: 'python',
+    lineNumbers: 'on',
+    renderLineHighlight: 'gutter',
+    value: getDefaultCode(),
   });
 
   testEditor = monaco.editor.create(document.getElementById('test-input-editor'), {
+    ...editorOpts,
     language: 'json',
-    theme: 'hookpad',
     fontSize: 12,
-    fontFamily: "'JetBrains Mono', monospace",
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    padding: { top: 12 },
     lineNumbers: 'off',
-    automaticLayout: true,
     value: '{\n  \n}',
   });
 
-  loadScripts();
+  init();
 });
 
-// ─── Load ────────────────────────────────────────────────────────────────────
+function getDefaultCode() {
+  return `# HookPad Script
+# Variáveis disponíveis:
+#   __params__  → dict com todos os parâmetros recebidos
+#   Cada param também vira variável direta
+
+nome = __params__.get("nome", "Mundo")
+numero = __params__.get("numero", 42)
+
+print(f"Olá, {nome}!")
+print(f"Número dobrado: {int(numero) * 2}")
+`;
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/api/base-url');
+    const data = await r.json();
+    BASE_URL = data.base_url;
+  } catch(e) {
+    BASE_URL = window.location.origin;
+  }
+  await loadScripts();
+  await loadGlobalHistory();
+  loadSettingsData();
+}
+
 async function loadScripts() {
   try {
     const list = await API('GET', '/api/scripts');
     scripts = {};
     list.forEach(s => scripts[s.id] = s);
     renderList();
-    document.getElementById('base-url-display').textContent = window.location.origin;
-  } catch(e) {
-    if (e.message.includes('401')) {
-      localStorage.removeItem('admin_token');
-      location.reload();
-    }
-  }
+  } catch(e) {}
 }
 
 function renderList() {
@@ -426,64 +643,126 @@ function renderList() {
   }
   el.innerHTML = ids.map(id => {
     const s = scripts[id];
-    const badgeClass = !s.enabled ? 'badge-off' : s.method === 'GET' ? 'badge-get' : 'badge-post';
+    let badge = '';
+    if (!s.enabled) {
+      badge = '<span class="method-badge badge-off">OFF</span>';
+    } else if (s.trigger === 'schedule') {
+      badge = '<span class="method-badge badge-sched">SCHED</span>';
+    } else if (s.token_expired) {
+      badge = '<span class="method-badge badge-exp">EXP</span>';
+    } else {
+      badge = `<span class="method-badge ${s.method === 'GET' ? 'badge-get' : 'badge-post'}">${s.method}</span>`;
+    }
     return `<div class="script-item ${currentId === id ? 'active' : ''}" onclick="selectScript('${id}')">
       <div class="script-item-name">${esc(s.name)}</div>
-      <div class="script-item-meta">
-        <span class="method-badge ${badgeClass}">${s.enabled ? s.method : 'OFF'}</span>
-        <span class="script-item-desc">${esc(s.description || '—')}</span>
-      </div>
+      <div class="script-item-meta">${badge}<span class="script-item-desc">${esc(s.description||'—')}</span></div>
     </div>`;
   }).join('');
 }
 
+// ─── Select Script ───────────────────────────────────────────────────────────
 function selectScript(id) {
   currentId = id;
   const s = scripts[id];
   renderList();
 
-  // populate code editor
-  if (codeEditor) codeEditor.setValue(s.code || '');
+  codeEditor && codeEditor.setValue(s.code || '');
 
-  // populate config
   document.getElementById('cfg-name').value = s.name;
   document.getElementById('cfg-desc').value = s.description || '';
   document.getElementById('cfg-enabled').checked = s.enabled;
-  document.getElementById('cfg-token').textContent = s.token;
-  cfgMethod = s.method;
-  updateMethodButtons();
 
-  const url = s.webhook_url;
-  document.getElementById('cfg-webhook-url').textContent = url;
-  updateUsageExample(s);
+  cfgMethod = s.method || 'POST';
+  cfgTrigger = s.trigger || 'webhook';
+  cfgSchedule = s.schedule_interval || null;
+
+  updateMethodButtons();
+  updateTriggerButtons();
+  updateScheduleButtons();
+
+  renderTokenSection(s);
+  renderWebhookUrl(s);
 
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('editor-panel').style.display = 'flex';
   switchTab('code');
 }
 
-function updateUsageExample(s) {
-  const url = s.webhook_url;
-  const token = s.token;
-  let example = '';
-  if (s.method === 'GET') {
-    example = `# GET com token na query string\ncurl "${url}?token=${token}&param=valor"\n\n# GET com token no header\ncurl -H "X-Token: ${token}" \\\n     "${url}?param=valor"`;
-  } else {
-    example = `# POST com JSON\ncurl -X POST "${url}" \\\n     -H "Content-Type: application/json" \\\n     -H "X-Token: ${token}" \\\n     -d '{"nome": "valor"}'\n\n# POST com token na query string\ncurl -X POST "${url}?token=${token}" \\\n     -H "Content-Type: application/json" \\\n     -d '{"nome": "valor"}'`;
+// ─── Token rendering ─────────────────────────────────────────────────────────
+function renderTokenSection(s) {
+  const hasToken = !!s.token;
+  document.getElementById('token-empty').style.display  = hasToken ? 'none' : 'block';
+  document.getElementById('token-filled').style.display = hasToken ? 'block' : 'none';
+
+  if (hasToken) {
+    document.getElementById('cfg-token').textContent = s.token;
+    const expiryLabel = document.getElementById('token-expiry-label');
+    if (!s.token_expires_at) {
+      expiryLabel.textContent = 'Sem expiração';
+      expiryLabel.className = 'token-expiry active';
+    } else {
+      const exp = new Date(s.token_expires_at + 'Z');
+      const now = new Date();
+      if (now > exp) {
+        expiryLabel.textContent = 'Token expirado';
+        expiryLabel.className = 'token-expiry expired';
+      } else {
+        expiryLabel.textContent = `Expira: ${exp.toLocaleString('pt-BR')}`;
+        expiryLabel.className = 'token-expiry active';
+      }
+    }
+    document.getElementById('regen-form').style.display = 'none';
   }
-  document.getElementById('usage-example').textContent = example;
+}
+
+function renderWebhookUrl(s) {
+  const urlText = document.getElementById('webhook-url-text');
+  const usageSection = document.getElementById('usage-example-section');
+  if (!s.token) {
+    urlText.textContent = 'Gere um token para ver a URL';
+    urlText.className = 'webhook-url-text no-token-url';
+    usageSection.style.display = 'none';
+  } else {
+    const url = `${BASE_URL}/hook/${s.id}`;
+    urlText.textContent = url;
+    urlText.className = 'webhook-url-text';
+    usageSection.style.display = 'block';
+    updateUsageExample(s);
+  }
+}
+
+function updateUsageExample(s) {
+  const url = `${BASE_URL}/hook/${s.id}`;
+  const token = s.token;
+  let ex = '';
+  if (s.method === 'GET') {
+    ex = `curl "${url}?token=${token}&param=valor"`;
+  } else {
+    ex = `curl -X POST "${url}" \\\n     -H "Content-Type: application/json" \\\n     -H "X-Token: ${token}" \\\n     -d '{"param": "valor"}'`;
+  }
+  document.getElementById('usage-example').textContent = ex;
 }
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['code','config','test'].forEach(t => {
+  ['code','config','test','history'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
   });
   document.getElementById('pane-code').style.display = tab === 'code' ? 'flex' : 'none';
   document.getElementById('pane-config').classList.toggle('show', tab === 'config');
   document.getElementById('pane-test').classList.toggle('show', tab === 'test');
-  if (codeEditor) codeEditor.layout();
-  if (testEditor) testEditor.layout();
+  document.getElementById('pane-history').classList.toggle('show', tab === 'history');
+  if (tab === 'history') loadScriptHistory();
+  codeEditor && codeEditor.layout();
+  testEditor && testEditor.layout();
+}
+
+function showPage(page) {
+  ['scripts','history'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('show', p === page);
+    document.getElementById(`nav-${p}`).classList.toggle('active', p === page);
+  });
+  if (page === 'history') loadGlobalHistory();
 }
 
 // ─── Save ────────────────────────────────────────────────────────────────────
@@ -499,11 +778,13 @@ async function saveScript() {
       code: codeEditor.getValue(),
       method: cfgMethod,
       enabled: document.getElementById('cfg-enabled').checked,
+      trigger: cfgTrigger,
+      schedule_interval: cfgSchedule,
     });
     scripts[currentId] = updated;
     renderList();
-    document.getElementById('cfg-webhook-url').textContent = updated.webhook_url;
-    updateUsageExample(updated);
+    renderTokenSection(updated);
+    renderWebhookUrl(updated);
     setStatus('Salvo!', 'ok');
   } catch(e) {
     setStatus('Erro: ' + e.message, 'err');
@@ -511,45 +792,166 @@ async function saveScript() {
   btn.disabled = false;
 }
 
-// ─── Run Test ────────────────────────────────────────────────────────────────
+// ─── Test ────────────────────────────────────────────────────────────────────
 async function runTest() {
   if (!currentId) return;
   const btn = document.getElementById('btn-run');
   btn.disabled = true;
-  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-dasharray="8 8"><animateTransform attributeName="transform" type="rotate" values="0 6.5 6.5;360 6.5 6.5" dur=".8s" repeatCount="indefinite"/></circle></svg> Executando...';
-
+  btn.innerHTML = spinner() + ' Executando...';
   document.getElementById('test-output').innerHTML = '<div class="output-content" style="color:var(--text2);">Executando...</div>';
   document.getElementById('output-meta').style.display = 'none';
-
-  // Auto-save code first
   await saveScript();
-
   let params = {};
   try { params = JSON.parse(testEditor.getValue()); } catch(e) {}
-
   try {
     const result = await API('POST', `/api/scripts/${currentId}/test`, params);
-    const out = document.getElementById('test-output');
-    const hasOut = result.stdout || result.stderr;
-    out.innerHTML = `<div class="output-content ${result.success ? 'success' : 'error'}">${esc(result.stdout || '')}${result.stderr ? '\n\n[stderr]\n' + esc(result.stderr) : ''}</div>`;
-
+    document.getElementById('test-output').innerHTML =
+      `<div class="output-content ${result.success ? 'success' : 'error'}">${esc(result.stdout || '')}${result.stderr ? '\n\n[stderr]\n' + esc(result.stderr) : ''}</div>`;
     const meta = document.getElementById('output-meta');
     meta.style.display = 'flex';
     meta.innerHTML = `
       <span class="${result.success ? 'meta-ok' : 'meta-err'}">${result.success ? '✓ sucesso' : '✗ erro'}</span>
       <span>${result.duration_ms}ms</span>
-      ${result.installed_packages.length ? `<span>instalados: ${result.installed_packages.join(', ')}</span>` : ''}
-      <span>${result.timestamp.split('T')[1].slice(0,8)}</span>
+      ${result.installed_packages?.length ? `<span class="meta-pkg">⬇ ${result.installed_packages.join(', ')}</span>` : ''}
+      <span>${fmtTime(result.timestamp)}</span>
     `;
   } catch(e) {
     document.getElementById('test-output').innerHTML = `<div class="output-content error">${esc(e.message)}</div>`;
   }
-
   btn.disabled = false;
   btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg> Executar';
 }
 
-// ─── Delete ─────────────────────────────────────────────────────────────────
+// ─── Auto-fill params ─────────────────────────────────────────────────────────
+function fillDetectedParams() {
+  if (!currentId) return;
+  const s = scripts[currentId];
+  const detected = s.detected_params || {};
+  if (!Object.keys(detected).length) {
+    setStatus('Nenhum param detectado', '');
+    return;
+  }
+  testEditor.setValue(JSON.stringify(detected, null, 2));
+}
+
+// ─── Token actions ────────────────────────────────────────────────────────────
+async function generateToken(isRegen = false) {
+  if (!currentId) return;
+  const expiry = isRegen ? selectedReExpiry : selectedExpiry;
+  try {
+    const r = await API('POST', `/api/scripts/${currentId}/generate-token`, { expiration: expiry });
+    scripts[currentId].token = r.token;
+    scripts[currentId].token_expires_at = r.expires_at;
+    scripts[currentId].token_expiration = r.expiration;
+    scripts[currentId].token_expired = false;
+    renderTokenSection(scripts[currentId]);
+    renderWebhookUrl(scripts[currentId]);
+    renderList();
+    setStatus('Token gerado!', 'ok');
+  } catch(e) {
+    setStatus('Erro: ' + e.message, 'err');
+  }
+}
+
+async function revokeToken() {
+  if (!currentId) return;
+  if (!confirm('Revogar token? O webhook deixará de funcionar.')) return;
+  try {
+    await API('POST', `/api/scripts/${currentId}/revoke-token`);
+    scripts[currentId].token = null;
+    scripts[currentId].token_expires_at = null;
+    renderTokenSection(scripts[currentId]);
+    renderWebhookUrl(scripts[currentId]);
+    renderList();
+    setStatus('Token revogado', 'ok');
+  } catch(e) {
+    setStatus('Erro: ' + e.message, 'err');
+  }
+}
+
+function showRegenerateForm() {
+  document.getElementById('regen-form').style.display = 'block';
+}
+
+function copyToken() {
+  navigator.clipboard.writeText(document.getElementById('cfg-token').textContent);
+  setStatus('Token copiado!', 'ok');
+}
+
+function copyWebhookUrl() {
+  const s = scripts[currentId];
+  if (!s?.token) return;
+  navigator.clipboard.writeText(`${BASE_URL}/hook/${s.id}`);
+  setStatus('URL copiada!', 'ok');
+}
+
+// ─── History ─────────────────────────────────────────────────────────────────
+async function loadScriptHistory() {
+  if (!currentId) return;
+  try {
+    const runs = await API('GET', `/api/scripts/${currentId}/history`);
+    renderRunList(document.getElementById('script-history-list'), runs, false);
+  } catch(e) {}
+}
+
+async function loadGlobalHistory() {
+  try {
+    const runs = await API('GET', '/api/history');
+    renderRunList(document.getElementById('global-history-list'), runs, true);
+  } catch(e) {}
+}
+
+function renderRunList(container, runs, showScript) {
+  if (!runs.length) {
+    container.innerHTML = '<div class="history-empty">Nenhuma execução ainda</div>';
+    return;
+  }
+  container.innerHTML = runs.map((r, i) => {
+    const preview = (r.stdout || r.stderr || '').replace(/\n/g, ' ').slice(0, 80);
+    const scriptLabel = showScript && r.script_name ? `<span style="color:var(--accent);font-size:11px;">${esc(r.script_name)}</span>` : '';
+    return `
+      <div class="run-item" onclick="toggleRun('${r.id}', ${i})">
+        <div class="run-status ${r.success ? 'run-ok' : 'run-fail'}"></div>
+        <div class="run-body">
+          <div class="run-top">
+            ${scriptLabel}
+            <span class="run-time">${fmtTime(r.timestamp)}</span>
+            <span class="run-trigger trig-${r.triggered_by||'webhook'}">${r.triggered_by||'webhook'}</span>
+            <span class="run-duration">${r.duration_ms}ms</span>
+          </div>
+          <div class="run-preview">${esc(preview) || '(sem output)'}</div>
+        </div>
+      </div>
+      <div class="run-detail" id="run-detail-${r.id}">
+        ${r.stdout ? `<div class="run-detail-label">stdout</div><pre>${esc(r.stdout)}</pre>` : ''}
+        ${r.stderr ? `<div class="run-detail-label">stderr</div><pre style="color:var(--red)">${esc(r.stderr)}</pre>` : ''}
+        ${r.installed_packages?.length ? `<div class="run-detail-label">pacotes instalados</div><pre style="color:var(--purple)">${r.installed_packages.join(', ')}</pre>` : ''}
+        ${r.params && Object.keys(r.params).length ? `<div class="run-detail-label">params</div><pre>${esc(JSON.stringify(r.params, null, 2))}</pre>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleRun(id, idx) {
+  const el = document.getElementById(`run-detail-${id}`);
+  if (el) el.classList.toggle('show');
+}
+
+async function clearScriptHistory() {
+  if (!currentId) return;
+  if (!confirm('Limpar histórico deste script?')) return;
+  await API('DELETE', `/api/scripts/${currentId}/history`);
+  await loadScriptHistory();
+  setStatus('Histórico limpo', 'ok');
+}
+
+async function clearAllHistory() {
+  if (!confirm('Limpar TODO o histórico?')) return;
+  await API('DELETE', '/api/history');
+  await loadGlobalHistory();
+}
+
+// ─── Delete ──────────────────────────────────────────────────────────────────
 async function deleteScript() {
   if (!currentId) return;
   if (!confirm(`Deletar "${scripts[currentId]?.name}"?`)) return;
@@ -565,42 +967,13 @@ async function deleteScript() {
   }
 }
 
-// ─── Token ───────────────────────────────────────────────────────────────────
-async function rotateToken() {
-  if (!currentId) return;
-  if (!confirm('Rotacionar token? O token atual deixará de funcionar.')) return;
-  try {
-    const r = await API('POST', `/api/scripts/${currentId}/rotate-token`);
-    scripts[currentId].token = r.token;
-    document.getElementById('cfg-token').textContent = r.token;
-    updateUsageExample(scripts[currentId]);
-    setStatus('Token rotacionado!', 'ok');
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
-}
-function copyToken() {
-  navigator.clipboard.writeText(document.getElementById('cfg-token').textContent);
-  setStatus('Token copiado!', 'ok');
-}
-function copyWebhookUrl() {
-  navigator.clipboard.writeText(document.getElementById('cfg-webhook-url').textContent);
-  setStatus('URL copiada!', 'ok');
-}
-
-// ─── New Modal ───────────────────────────────────────────────────────────────
+// ─── New Modal ────────────────────────────────────────────────────────────────
 function openNewModal() {
   document.getElementById('new-modal').classList.remove('hidden');
-  document.getElementById('new-name').focus();
+  setTimeout(() => document.getElementById('new-name').focus(), 50);
 }
-function closeNewModal() {
-  document.getElementById('new-modal').classList.add('hidden');
-}
-function selectNewMethod(m) {
-  newMethod = m;
-  document.getElementById('new-method-get').className = 'method-btn' + (m === 'GET' ? ' sel-get' : '');
-  document.getElementById('new-method-post').className = 'method-btn' + (m === 'POST' ? ' sel-post' : '');
-}
+function closeNewModal() { document.getElementById('new-modal').classList.add('hidden'); }
+
 async function createScript() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) return;
@@ -608,8 +981,9 @@ async function createScript() {
     const s = await API('POST', '/api/scripts', {
       name,
       description: document.getElementById('new-desc').value,
-      method: newMethod,
-      code: '# Seu código Python aqui\n# Variáveis injetadas automaticamente:\n# - __params__  → dict com todos os parâmetros recebidos\n# Exemplo: print(__params__)\n\nprint("Hello from HookPad!")\n',
+      method: 'POST',
+      trigger: 'webhook',
+      code: getDefaultCode(),
     });
     scripts[s.id] = s;
     closeNewModal();
@@ -617,33 +991,114 @@ async function createScript() {
     document.getElementById('new-desc').value = '';
     renderList();
     selectScript(s.id);
+  } catch(e) { alert('Erro: ' + e.message); }
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+async function loadSettingsData() {
+  try {
+    const s = await API('GET', '/api/settings');
+    selectedHistoryDays = s.history_days || 30;
+    updateHistoryDaysButtons();
+  } catch(e) {}
+}
+
+function openSettings() {
+  updateHistoryDaysButtons();
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+async function saveSettings() {
+  try {
+    await API('PUT', '/api/settings', { history_days: selectedHistoryDays });
+    closeSettings();
+    setStatus('Configurações salvas!', 'ok');
   } catch(e) {
-    alert('Erro: ' + e.message);
+    setStatus('Erro: ' + e.message, 'err');
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+function selectHistoryDays(d) {
+  selectedHistoryDays = d;
+  updateHistoryDaysButtons();
+}
+
+function updateHistoryDaysButtons() {
+  [30, 60, 90].forEach(d => {
+    document.getElementById(`hdays-${d}`)?.classList.toggle('sel', selectedHistoryDays === d);
+  });
+}
+
+// ─── UI helpers ──────────────────────────────────────────────────────────────
 function selectMethod(m) {
   cfgMethod = m;
   updateMethodButtons();
 }
 function updateMethodButtons() {
-  document.getElementById('method-get').className = 'method-btn' + (cfgMethod === 'GET' ? ' sel-get' : '');
+  document.getElementById('method-get').className  = 'method-btn' + (cfgMethod === 'GET'  ? ' sel-get'  : '');
   document.getElementById('method-post').className = 'method-btn' + (cfgMethod === 'POST' ? ' sel-post' : '');
 }
+
+function selectTrigger(t) {
+  cfgTrigger = t;
+  updateTriggerButtons();
+}
+function updateTriggerButtons() {
+  document.getElementById('trig-webhook').className  = 'trigger-btn' + (cfgTrigger === 'webhook'  ? ' sel-webhook'  : '');
+  document.getElementById('trig-schedule').className = 'trigger-btn' + (cfgTrigger === 'schedule' ? ' sel-schedule' : '');
+  document.getElementById('webhook-config').style.display  = cfgTrigger === 'webhook'  ? 'block' : 'none';
+  document.getElementById('schedule-config').style.display = cfgTrigger === 'schedule' ? 'block' : 'none';
+}
+
+function selectSchedule(s) {
+  cfgSchedule = s;
+  updateScheduleButtons();
+}
+function updateScheduleButtons() {
+  ['5min','1h','daily','weekly'].forEach(s => {
+    document.getElementById(`sched-${s}`)?.classList.toggle('sel', cfgSchedule === s);
+  });
+}
+
+function selectExpiry(e) {
+  selectedExpiry = e;
+  ['never','1h','24h','7d','30d'].forEach(v => {
+    document.getElementById(`expiry-${v}`)?.classList.toggle('sel', v === e);
+  });
+}
+
+function selectReExpiry(e) {
+  selectedReExpiry = e;
+  ['never','1h','24h','7d','30d'].forEach(v => {
+    document.getElementById(`rexpiry-${v}`)?.classList.toggle('sel', v === e);
+  });
+}
+
 function setStatus(msg, type) {
   const el = document.getElementById('status-msg');
   el.textContent = msg;
   el.className = 'status-msg' + (type ? ' ' + type : '');
   if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
 }
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + (iso.endsWith('Z') ? '' : 'Z'));
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
 
-// Enter no modal
+function spinner() {
+  return `<svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-dasharray="8 8"><animateTransform attributeName="transform" type="rotate" values="0 6.5 6.5;360 6.5 6.5" dur=".8s" repeatCount="indefinite"/></circle></svg>`;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeNewModal();
+  if (e.key === 'Escape') { closeNewModal(); closeSettings(); }
   if (e.key === 'Enter' && !document.getElementById('new-modal').classList.contains('hidden')) createScript();
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveScript(); }
 });
