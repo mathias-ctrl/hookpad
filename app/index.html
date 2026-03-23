@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%233b82f6'/><path d='M8 10h4v12H8zM14 16l6-6v12l-6-6z' fill='white'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js" onload="window._lucideReady=true;initIcons()"></script>
 <style>
 :root {
   --bg:      #0a0a0a;
@@ -618,6 +618,11 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
+// ─── Lucide safe wrapper ─────────────────────────────────────────────────────
+function initIcons() {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 // ─── State ───────────────────────────────────────────────────────────────────
 let ADMIN_TOKEN = localStorage.getItem('admin_token') || '';
 let BASE_URL = '';
@@ -862,7 +867,7 @@ async function runTest() {
   const btn = document.getElementById('btn-run');
   btn.disabled = true;
   btn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;"></i> Executando...';
-  lucide.createIcons();
+  initIcons();
   document.getElementById('test-output').innerHTML = '<div class="result-content" style="color:var(--text3);">Executando...</div>';
   document.getElementById('result-meta').style.display = 'none';
   document.getElementById('copy-result-btn').style.display = 'none';
@@ -891,7 +896,7 @@ async function runTest() {
   }
   btn.disabled = false;
   btn.innerHTML = '<i data-lucide="play" style="width:13px;height:13px;"></i> Executar';
-  lucide.createIcons();
+  initIcons();
 }
 
 function copyResult() {
@@ -993,7 +998,6 @@ async function renderCurlExample(s) {
   }
   document.getElementById('curl-example').textContent = curl;
   document.getElementById('curl-example-section').style.display = 'block';
-  lucide.createIcons();
 }
 
 function copyCurl() {
@@ -1103,7 +1107,7 @@ function renderHistoryList(runs) {
       + (r.installed_packages && r.installed_packages.length ? '<div class="run-detail-section"><div class="run-detail-label">pacotes</div><div class="run-detail-pre" style="color:var(--purple);">' + r.installed_packages.join(', ') + '</div></div>' : '')
       + '</div>';
   }).join('');
-  lucide.createIcons();
+  initIcons();
 }
 function toggleRun(id) {
   const detail = document.getElementById('run-detail-' + id);
@@ -1200,7 +1204,7 @@ document.addEventListener('keydown', e => {
 
 // Init icons
 document.addEventListener('DOMContentLoaded', () => {
-  lucide.createIcons();
+  initIcons();
   if (!localStorage.getItem('admin_token')) showLogin();
 });
 </script>
