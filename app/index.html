@@ -919,11 +919,13 @@ async function renderUsageExample(s) {
   } else {
     const hasFile = mainParams.some(function(p) { return p.type === 'file'; });
     if (hasFile) {
-      const lines = ['curl -X POST "' + url + '" \', '  -H "X-Token: ' + token + '" \'];
+      const bs = ' \\';
+      const lines = ['curl -X POST "' + url + '"' + bs, '  -H "X-Token: ' + token + '"' + bs];
       mainParams.forEach(function(p) {
-        lines.push('  -F "' + p.name + '=' + (p.type === 'file' ? '@arquivo.bin' : 'valor') + '" \');
+        lines.push('  -F "' + p.name + '=' + (p.type === 'file' ? '@arquivo.bin' : 'valor') + '"' + bs);
       });
-      ex = lines.join('\n').replace(/ \\$/, '');
+      if (lines.length) lines[lines.length - 1] = lines[lines.length - 1].replace(/ \\$/, '');
+      ex = lines.join('\n');
     } else {
       let bodyParts = [];
       mainParams.forEach(function(p) {
