@@ -201,6 +201,9 @@ def save_run(script_id: str, result: dict):
             runs = json.loads(history_file.read_text())
         except Exception:
             runs = []
+    # Trunca stdout para manter histórico leve
+    if "stdout" in result and result["stdout"]:
+        result["stdout"] = result["stdout"][:500]
     runs.insert(0, result)
     settings = load_settings()
     days = settings.get("history_days", 30)

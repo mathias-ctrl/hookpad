@@ -4,569 +4,581 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HookPad</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%233b82f6'/><path d='M8 10h4v12H8zM14 16l6-6v12l-6-6z' fill='white'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
 <style>
 :root {
-  --bg0: #0d0e11; --bg1: #13151a; --bg2: #1a1d24; --bg3: #22262f; --bg4: #2a2f3a;
-  --line: #2e3340; --text0: #e8eaf0; --text1: #9ba3b5; --text2: #5c6478;
-  --accent: #3b82f6; --accent2: #1d4ed8;
-  --green: #22c55e; --green-bg: #14532d; --green-border: #22c55e44;
-  --red: #ef4444; --red-bg: #7f1d1d33; --yellow: #eab308; --yellow-bg: #78350f55;
-  --purple: #a78bfa; --purple-bg: #3b0764aa;
-  --mono: 'JetBrains Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+  --bg:      #0a0a0a;
+  --bg1:     #111111;
+  --bg2:     #1a1a1a;
+  --bg3:     #222222;
+  --bg4:     #2a2a2a;
+  --border:  #2e2e2e;
+  --border2: #3a3a3a;
+  --text:    #ededed;
+  --text2:   #a1a1a1;
+  --text3:   #666666;
+  --accent:  #3b82f6;
+  --accent2: #2563eb;
+  --green:   #22c55e;
+  --red:     #ef4444;
+  --yellow:  #f59e0b;
+  --purple:  #a78bfa;
+  --mono:    'Geist Mono', monospace;
+  --sans:    'Geist', system-ui, sans-serif;
+  --radius:  6px;
+  --radius2: 8px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: var(--bg0); color: var(--text0); font-family: var(--sans); font-size: 14px; overflow: hidden; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; overflow: hidden; }
 
-/* Layout */
-.app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
-.topbar { grid-column: 1/-1; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--bg1); border-bottom: 1px solid var(--line); }
-.topbar-logo { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
-.topbar-logo span { color: var(--text2); }
-.topbar-spacer { flex: 1; }
-.topbar-nav { display: flex; gap: 4px; }
-.topbar-nav-btn { background: none; border: none; color: var(--text2); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-family: var(--sans); font-size: 12px; font-weight: 500; transition: all .15s; }
-.topbar-nav-btn:hover { background: var(--bg2); color: var(--text0); }
-.topbar-nav-btn.active { background: var(--bg3); color: var(--text0); }
-.topbar-settings { background: none; border: none; color: var(--text2); padding: 6px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; transition: all .15s; }
-.topbar-settings:hover { background: var(--bg2); color: var(--text0); }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-/* Sidebar */
-.sidebar { background: var(--bg1); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
-.sidebar-header { padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px; }
-.sidebar-header h2 { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; flex: 1; }
-.btn-new { background: var(--accent); color: #fff; border: none; border-radius: 5px; padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 5px; transition: background .15s; }
-.btn-new:hover { background: var(--accent2); }
-.script-list { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
-.script-item { padding: 9px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 2px; transition: background .1s; border: 1px solid transparent; }
+/* ── Layout ── */
+.app { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 44px 1fr; height: 100vh; }
+
+/* ── Topbar ── */
+.topbar {
+  grid-column: 1/-1;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+}
+.logo { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.logo-icon { width: 22px; height: 22px; background: var(--accent); border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-icon svg { color: white; }
+.logo-sub { color: var(--text3); font-size: 11px; font-weight: 400; }
+.topbar-sep { flex: 1; }
+.topbar-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  background: none; border: none; color: var(--text3); padding: 5px; border-radius: var(--radius);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.icon-btn:hover { background: var(--bg3); color: var(--text); }
+.version-badge { font-family: var(--mono); font-size: 10px; color: var(--text3); padding: 2px 7px; border: 1px solid var(--border); border-radius: 100px; }
+
+/* ── Sidebar ── */
+.sidebar { background: var(--bg1); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-head { padding: 10px 10px 8px; display: flex; align-items: center; gap: 6px; }
+.sidebar-title { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; flex: 1; }
+.btn-new-script {
+  background: var(--accent); color: #fff; border: none; border-radius: var(--radius);
+  padding: 4px 10px; font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: var(--sans); display: flex; align-items: center; gap: 4px; transition: background .15s;
+}
+.btn-new-script:hover { background: var(--accent2); }
+.script-list { flex: 1; overflow-y: auto; padding: 2px 6px 10px; }
+.script-item {
+  padding: 8px 9px; border-radius: var(--radius); cursor: pointer; margin-bottom: 1px;
+  transition: background .1s; border: 1px solid transparent; position: relative;
+}
 .script-item:hover { background: var(--bg2); }
-.script-item.active { background: var(--bg3); border-color: var(--line); }
-.script-item-name { font-size: 13px; font-weight: 500; color: var(--text0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.script-item-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
-.method-badge { font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
-.badge-get    { background: #14532d; color: #86efac; }
-.badge-post   { background: #1e3a5f; color: #93c5fd; }
-.badge-off    { background: var(--bg4); color: var(--text2); }
-.badge-sched  { background: #3b0764; color: #c4b5fd; }
-.badge-exp    { background: #78350f; color: #fcd34d; }
-.script-item-desc { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.script-item.active { background: var(--bg3); border-color: var(--border); }
+.script-item-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+.script-item-meta { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.badge { font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.badge-get    { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+.badge-post   { background: #0c1a2e; color: #60a5fa; border: 1px solid #1e40af; }
+.badge-off    { background: var(--bg4); color: var(--text3); border: 1px solid var(--border); }
+.badge-sched  { background: #1e1030; color: #c4b5fd; border: 1px solid #4c1d95; }
+.badge-exp    { background: #2d1a00; color: #fbbf24; border: 1px solid #92400e; }
+.script-item-desc { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pkg-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
 
-/* Main */
-.main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg0); }
-.page { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-.page.show { display: flex; }
-.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2); }
+/* ── Main panel ── */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text3); }
+.empty-icon { opacity: .3; }
+.empty-label { font-size: 13px; }
 
-/* Editor panel */
+/* ── Editor panel ── */
 .editor-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.panel-tabs { display: flex; align-items: stretch; background: var(--bg1); border-bottom: 1px solid var(--line); padding: 0 16px; gap: 2px; }
-.tab { padding: 10px 14px; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; white-space: nowrap; }
-.tab:hover { color: var(--text0); }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs-bar { display: flex; align-items: stretch; background: var(--bg1); border-bottom: 1px solid var(--border); padding: 0 14px; gap: 0; }
+.tab { padding: 10px 14px; font-size: 12px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; white-space: nowrap; }
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
 .tab-spacer { flex: 1; }
 
-/* Code tab */
-.code-tab { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+/* ── Code pane ── */
+.code-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 #monaco-container { flex: 1; }
 
-/* Config tab */
-.config-tab { flex: 1; overflow-y: auto; padding: 24px; display: none; }
-.config-tab.show { display: block; }
-.field-group { margin-bottom: 20px; }
-.field-label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-.field-hint { font-size: 11px; color: var(--text2); font-weight: 400; text-transform: none; letter-spacing: 0; }
-.field-input { width: 100%; background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; color: var(--text0); font-family: var(--sans); font-size: 13px; transition: border-color .15s; outline: none; }
+/* ── Config pane ── */
+.config-pane { flex: 1; overflow-y: auto; padding: 20px 24px; display: none; }
+.config-pane.show { display: block; }
+.config-section { margin-bottom: 24px; }
+.config-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+.field { margin-bottom: 14px; }
+.field-label { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 5px; display: block; }
+.field-input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px; color: var(--text); font-family: var(--sans); font-size: 13px; outline: none; transition: border-color .15s;
+}
 .field-input:focus { border-color: var(--accent); }
-.field-input::placeholder { color: var(--text2); }
-textarea.field-input { resize: vertical; min-height: 60px; }
-.method-row { display: flex; gap: 8px; }
-.method-btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; text-align: center; }
-.method-btn.sel-get  { background: #14532d; border-color: #22c55e44; color: #86efac; }
-.method-btn.sel-post { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
+.field-input::placeholder { color: var(--text3); }
+textarea.field-input { resize: vertical; min-height: 56px; }
+.toggle-row { display: flex; align-items: center; gap: 10px; }
+.toggle { position: relative; width: 34px; height: 18px; cursor: pointer; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg4); border-radius: 9px; transition: .2s; border: 1px solid var(--border2); }
+.toggle-slider:before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; background: var(--text3); border-radius: 50%; transition: .2s; }
+.toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(16px); background: #fff; }
+.toggle-label { font-size: 13px; color: var(--text2); }
 
-/* Trigger selector */
-.trigger-row { display: flex; gap: 8px; }
-.trigger-btn { flex: 1; padding: 10px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-family: var(--sans); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.trigger-btn small { font-size: 10px; color: var(--text2); }
-.trigger-btn.sel-webhook { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
-.trigger-btn.sel-webhook small { color: #93c5fd99; }
-.trigger-btn.sel-schedule { background: #3b0764; border-color: #a78bfa44; color: #c4b5fd; }
-.trigger-btn.sel-schedule small { color: #c4b5fd99; }
+/* Method / trigger row */
+.segmented { display: flex; gap: 4px; }
+.seg-btn {
+  flex: 1; padding: 7px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text3); font-family: var(--mono); font-size: 11px;
+  font-weight: 600; cursor: pointer; transition: all .15s; text-align: center;
+}
+.seg-btn:hover { border-color: var(--border2); color: var(--text2); }
+.seg-btn.active-get  { background: #052e16; border-color: #166534; color: #4ade80; }
+.seg-btn.active-post { background: #0c1a2e; border-color: #1e40af; color: #60a5fa; }
+.seg-btn.active-webhook  { background: #0c1a2e; border-color: #1e40af; color: #60a5fa; }
+.seg-btn.active-schedule { background: #1e1030; border-color: #4c1d95; color: #c4b5fd; }
 
-/* Schedule options */
-.schedule-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.schedule-opt { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--text1); font-size: 12px; cursor: pointer; transition: all .15s; text-align: center; }
-.schedule-opt:hover { border-color: var(--purple); color: var(--text0); }
-.schedule-opt.sel { background: var(--purple-bg); border-color: #a78bfa44; color: var(--purple); }
+/* Schedule grid */
+.schedule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
+.schedule-opt { padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg2); color: var(--text3); font-size: 12px; cursor: pointer; text-align: center; transition: all .15s; }
+.schedule-opt:hover { border-color: var(--border2); color: var(--text2); }
+.schedule-opt.sel { background: #1e1030; border-color: #4c1d95; color: #c4b5fd; }
 
-/* Token box */
-.token-section { background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.token-no-token { padding: 16px; text-align: center; }
-.token-no-token p { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
-.token-has-token { padding: 12px 14px; }
-.token-val-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.token-val { font-family: var(--mono); font-size: 12px; color: var(--yellow); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--bg3); padding: 6px 10px; border-radius: 5px; border: 1px solid var(--line); }
-.token-meta { display: flex; align-items: center; justify-content: space-between; }
-.token-expiry { font-size: 11px; color: var(--text2); font-family: var(--mono); }
-.token-expiry.expired { color: var(--red); }
-.token-expiry.active { color: var(--green); }
-.token-actions { display: flex; gap: 6px; }
-.generate-token-form { padding: 12px 14px; border-top: 1px solid var(--line); }
-.generate-token-form p { font-size: 11px; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
-.expiry-opts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.expiry-opt { padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg3); color: var(--text1); font-size: 11px; cursor: pointer; transition: all .15s; font-family: var(--mono); }
+/* Token section */
+.token-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); overflow: hidden; }
+.token-empty-state { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.token-empty-state p { font-size: 12px; color: var(--text3); }
+.expiry-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.expiry-opt { padding: 4px 9px; border-radius: 100px; border: 1px solid var(--border); background: transparent; color: var(--text3); font-size: 11px; font-family: var(--mono); cursor: pointer; transition: all .15s; }
 .expiry-opt:hover { border-color: var(--yellow); color: var(--yellow); }
-.expiry-opt.sel { background: var(--yellow-bg); border-color: #eab30844; color: var(--yellow); }
+.expiry-opt.sel { background: #2d1a00; border-color: #92400e; color: var(--yellow); }
+.token-filled-state { padding: 10px 14px; }
+.token-value-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.token-val { font-family: var(--mono); font-size: 11px; color: var(--yellow); flex: 1; background: var(--bg3); padding: 5px 9px; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.token-actions-row { display: flex; align-items: center; justify-content: space-between; }
+.token-expiry-label { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.token-expiry-label.ok { color: var(--green); }
+.token-expiry-label.exp { color: var(--red); }
+.token-btns { display: flex; gap: 4px; }
+.regen-form { padding: 10px 14px; border-top: 1px solid var(--border); }
+.regen-form-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
 
 /* Webhook URL */
-.webhook-url-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); word-break: break-all; cursor: pointer; transition: border-color .15s; display: flex; align-items: center; gap: 8px; }
-.webhook-url-box:hover { border-color: var(--accent); }
-.webhook-url-text { flex: 1; }
-.no-token-url { color: var(--text2); font-style: italic; }
+.url-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--accent);
+  cursor: pointer; transition: border-color .15s; word-break: break-all;
+}
+.url-box:hover { border-color: var(--accent); }
+.url-box-text { flex: 1; }
+.url-no-token { color: var(--text3); font-style: italic; font-family: var(--sans); font-size: 12px; }
 
-/* Usage example */
-.usage-box { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: var(--text1); line-height: 1.8; white-space: pre; overflow-x: auto; }
+/* Example curl */
+.curl-box-wrap { position: relative; }
+.curl-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: var(--text2);
+  line-height: 1.8; white-space: pre; overflow-x: auto;
+}
+.curl-copy-btn {
+  position: absolute; top: 6px; right: 6px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text3); padding: 4px 8px; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; transition: all .15s; font-family: var(--sans);
+}
+.curl-copy-btn:hover { background: var(--bg4); color: var(--text); }
 
-/* Toggle */
-.toggle-row { display: flex; align-items: center; gap: 12px; }
-.toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider { position: absolute; inset: 0; background: var(--bg4); border-radius: 10px; transition: .2s; }
-.toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: var(--text2); border-radius: 50%; transition: .2s; }
-.toggle input:checked + .toggle-slider { background: var(--accent); }
-.toggle input:checked + .toggle-slider:before { transform: translateX(16px); background: #fff; }
-.toggle-label { font-size: 13px; color: var(--text1); }
-
-/* Test tab */
-.test-tab { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-.test-tab.show { display: flex; }
-.test-panes { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
-.test-pane { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--line); }
-.test-pane:last-child { border-right: none; }
-.pane-header { padding: 9px 14px; background: var(--bg1); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; }
-.pane-header-hint { font-size: 10px; color: var(--accent); font-weight: 400; text-transform: none; letter-spacing: 0; cursor: pointer; margin-left: auto; }
-.pane-header-hint:hover { color: var(--text0); }
-.pane-body { flex: 1; overflow: auto; }
-.output-content { padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text1); }
-.output-content.success { color: var(--green); }
-.output-content.error { color: var(--red); }
-.output-meta { padding: 8px 14px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; gap: 16px; font-size: 11px; color: var(--text2); font-family: var(--mono); flex-wrap: wrap; }
-.meta-ok { color: var(--green); }
+/* ── Test pane ── */
+.test-pane { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.test-pane.show { display: flex; }
+.test-split { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
+.test-panel { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); }
+.test-panel:last-child { border-right: none; }
+.test-panel-head { padding: 8px 12px; background: var(--bg1); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 6px; }
+.test-panel-head-right { margin-left: auto; display: flex; gap: 4px; }
+.test-panel-body { flex: 1; overflow: auto; }
+.result-content { padding: 12px; font-family: var(--mono); font-size: 11px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text2); }
+.result-content.ok { color: var(--green); }
+.result-content.err { color: var(--red); }
+.result-meta { padding: 6px 12px; background: var(--bg1); border-top: 1px solid var(--border); display: flex; gap: 14px; font-size: 11px; color: var(--text3); font-family: var(--mono); flex-wrap: wrap; }
+.meta-ok  { color: var(--green); }
 .meta-err { color: var(--red); }
 .meta-pkg { color: var(--purple); }
 
-/* History tab */
-.history-tab { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-.history-tab.show { display: flex; }
-.history-header { padding: 10px 16px; background: var(--bg1); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+/* ── History pane ── */
+.history-pane { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.history-pane.show { display: flex; }
+.history-head { padding: 8px 14px; background: var(--bg1); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
 .history-list { flex: 1; overflow-y: auto; }
-.history-empty { padding: 40px; text-align: center; color: var(--text2); font-size: 13px; }
-.run-item { padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .1s; display: flex; align-items: flex-start; gap: 12px; }
-.run-item:hover { background: var(--bg2); }
-.run-item .run-chevron { font-size:10px; color:var(--text2); margin-left:auto; transition:transform .2s; flex-shrink:0; padding-top:2px; }
-.run-detail.show + .run-item .run-chevron,
-.run-item.expanded .run-chevron { transform: rotate(90deg); }
-.run-status { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.run-ok   { background: var(--green); }
-.run-fail { background: var(--red); }
-.run-body { flex: 1; min-width: 0; }
-.run-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-.run-time { font-size: 11px; color: var(--text2); font-family: var(--mono); }
-.run-trigger { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-weight: 600; }
-.trig-webhook  { background: #1e3a5f; color: #93c5fd; }
-.trig-schedule { background: #3b0764; color: #c4b5fd; }
-.trig-test     { background: var(--bg4); color: var(--text2); }
-.run-duration { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-left: auto; }
-.run-preview { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
-.run-detail { display: none; padding: 10px 16px 14px 36px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+.history-empty { padding: 40px; text-align: center; color: var(--text3); font-size: 13px; }
+.run-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
+.run-row:hover { background: var(--bg2); }
+.run-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.run-dot.ok   { background: var(--green); }
+.run-dot.fail { background: var(--red); }
+.run-info { flex: 1; min-width: 0; }
+.run-time { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.run-preview { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); margin-top: 1px; }
+.run-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.run-dur { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.run-trigger-badge { font-size: 9px; font-family: var(--mono); font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.trig-webhook  { background: #0c1a2e; color: #60a5fa; }
+.trig-schedule { background: #1e1030; color: #c4b5fd; }
+.trig-test     { background: var(--bg4); color: var(--text3); }
+.run-chevron { color: var(--text3); transition: transform .2s; flex-shrink: 0; }
+.run-detail { display: none; padding: 10px 14px 14px 31px; background: var(--bg1); border-bottom: 1px solid var(--border); }
 .run-detail.show { display: block; }
-.run-detail pre { font-family: var(--mono); font-size: 11px; color: var(--text1); white-space: pre-wrap; word-break: break-word; line-height: 1.6; max-height: 200px; overflow-y: auto; }
-.run-detail-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; margin-top: 10px; }
-.run-detail-label:first-child { margin-top: 0; }
+.run-chevron.open { transform: rotate(90deg); }
+.run-detail-section { margin-top: 8px; }
+.run-detail-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+.run-detail-pre { font-family: var(--mono); font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-word; line-height: 1.6; max-height: 180px; overflow-y: auto; }
+.run-detail-pre.err-text { color: var(--red); }
 
-/* Global history page */
-.history-page { flex: 1; overflow: hidden; display: none; flex-direction: column; }
-.history-page.show { display: flex; }
-.history-page-header { padding: 16px 20px; background: var(--bg1); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
-.history-page-header h2 { font-size: 15px; font-weight: 500; }
+/* ── How-to pane ── */
+.howto-pane { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+.howto-pane.show { display: block; }
+.howto-section { margin-bottom: 24px; max-width: 620px; }
+.howto-h { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.howto-p { font-size: 12px; color: var(--text2); line-height: 1.7; margin-bottom: 8px; }
+.howto-pre { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: var(--text2); line-height: 1.7; overflow-x: auto; white-space: pre; }
+.howto-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.howto-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text2); }
+.howto-table td:first-child { font-family: var(--mono); color: var(--purple); width: 90px; }
 
-/* Action bar */
-.action-bar { padding: 10px 16px; background: var(--bg1); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
-.btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: background .15s; }
+/* ── Action bar ── */
+.action-bar { padding: 8px 14px; background: var(--bg1); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 7px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 5px; transition: background .15s; }
 .btn-primary:hover { background: var(--accent2); }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
-.btn-danger { background: transparent; border: 1px solid var(--line); color: var(--red); border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
-.btn-danger:hover { background: var(--red-bg); border-color: var(--red); }
-.btn-run { background: var(--green-bg); border: 1px solid var(--green-border); color: #86efac; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: all .15s; }
-.btn-run:hover { background: #166534; }
+.btn-run { background: #052e16; border: 1px solid #166534; color: #4ade80; border-radius: var(--radius); padding: 7px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 5px; transition: all .15s; }
+.btn-run:hover { background: #14532d; }
 .btn-run:disabled { opacity: .4; cursor: not-allowed; }
-.btn-sm { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; white-space: nowrap; }
-.btn-sm:hover { background: var(--bg4); color: var(--text0); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text3); border-radius: var(--radius); padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: var(--sans); transition: all .15s; display: flex; align-items: center; gap: 5px; }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.btn-danger { background: transparent; border: 1px solid transparent; color: var(--red); border-radius: var(--radius); padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.btn-danger:hover { background: #2d1a1a; border-color: var(--red); }
+.btn-sm { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; display: flex; align-items: center; gap: 4px; }
+.btn-sm:hover { background: var(--bg4); color: var(--text); }
 .btn-sm.danger { color: var(--red); }
-.btn-sm.danger:hover { background: var(--red-bg); border-color: var(--red); }
+.btn-sm.danger:hover { background: #2d1a1a; border-color: var(--red); }
 .bar-spacer { flex: 1; }
-.status-msg { font-size: 12px; color: var(--text2); font-family: var(--mono); }
-.status-msg.ok          { color: var(--green); }
-.status-msg.err         { color: var(--red); }
-.status-msg.installing  { color: var(--yellow); }
+.status-msg { font-size: 11px; font-family: var(--mono); color: var(--text3); }
+.status-msg.ok { color: var(--green); }
+.status-msg.err { color: var(--red); }
+.status-msg.installing { color: var(--yellow); }
 
-/* Settings modal */
-.modal-backdrop { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(3px); }
+/* ── Modals ── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
 .modal-backdrop.hidden { display: none; }
-.modal { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 24px; width: 400px; max-width: 96vw; }
-.modal h3 { font-size: 16px; font-weight: 500; margin-bottom: 18px; }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-.btn-cancel { background: var(--bg3); border: 1px solid var(--line); color: var(--text1); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 13px; }
-.history-days-opts { display: flex; gap: 8px; }
-.history-days-opt { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg3); color: var(--text1); font-size: 13px; cursor: pointer; transition: all .15s; text-align: center; }
-.history-days-opt:hover { border-color: var(--accent); color: var(--text0); }
-.history-days-opt.sel { background: #1e3a5f; border-color: #3b82f644; color: #93c5fd; }
+.modal { background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius2); padding: 20px 22px; width: 360px; display: flex; flex-direction: column; gap: 14px; }
+.modal h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 2px; }
+.btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius); padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.btn-cancel:hover { background: var(--bg3); }
 
-/* Divider */
-.config-section-title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin: 24px 0 14px; padding-top: 20px; border-top: 1px solid var(--line); }
+/* ── Settings modal ── */
+.settings-section { display: flex; flex-direction: column; gap: 8px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 12px; color: var(--text2); }
+.hdays-opts { display: flex; gap: 4px; }
+.hdays-opt { padding: 4px 10px; border-radius: 100px; border: 1px solid var(--border); background: transparent; color: var(--text3); font-size: 11px; cursor: pointer; transition: all .15s; }
+.hdays-opt:hover { border-color: var(--border2); color: var(--text2); }
+.hdays-opt.sel { background: #0c1a2e; border-color: #1e40af; color: #60a5fa; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--line); }
+/* ── Login ── */
+#login-screen {
+  display: none; position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+}
+.login-card { background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius2); padding: 28px 28px 24px; width: 320px; display: flex; flex-direction: column; gap: 14px; }
+.login-logo { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.login-logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.login-logo-icon svg { color: white; }
+.login-label { font-size: 11px; color: var(--text3); }
+.login-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; transition: border-color .15s; }
+.login-input:focus { border-color: var(--accent); }
+.login-error { font-size: 11px; color: var(--red); min-height: 14px; text-align: center; }
 </style>
 </head>
 <body>
-<!-- Login Screen -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg0);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-  <div style="text-align:center;margin-bottom:8px;">
-    <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);">HookPad<span style="color:var(--text2);">.py</span></div>
-    <div style="font-size:12px;color:var(--text2);margin-top:4px;">Python Webhook Runner</div>
-  </div>
-  <div style="background:var(--bg1);border:1px solid var(--line);border-radius:10px;padding:28px 32px;width:320px;display:flex;flex-direction:column;gap:14px;">
-    <div style="font-size:12px;color:var(--text2);text-align:center;">Admin Token</div>
-    <input id="login-input" type="password" placeholder="Digite seu token..."
-      style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:10px 14px;color:var(--text0);font-family:var(--mono);font-size:13px;outline:none;width:100%;"
-      onkeydown="if(event.key==='Enter')doLogin()"
-      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--line)'">
-    <button id="login-btn" onclick="doLogin()"
-      style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:background .15s;"
-      onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">
-      Entrar
-    </button>
-    <div id="login-error" style="font-size:12px;color:var(--red);text-align:center;min-height:16px;"></div>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="4" height="10" rx="1" fill="currentColor"/><path d="M8 8l5-5v10L8 8z" fill="currentColor"/></svg></div>
+      HookPad
+    </div>
+    <div class="login-label">Admin Token</div>
+    <input id="login-input" type="password" class="login-input" placeholder="••••••••••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" id="login-btn" onclick="doLogin()" style="width:100%;justify-content:center;">Entrar</button>
+    <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
+<!-- App -->
 <div class="app" id="app">
-
   <!-- Topbar -->
   <div class="topbar">
-    <span class="topbar-logo">hook<span>pad</span></span>
-    <div class="topbar-spacer"></div>
-    <div class="topbar-nav">
-      <button class="topbar-nav-btn active" id="nav-scripts" onclick="showPage('scripts')">Scripts</button>
+    <div class="logo">
+      <div class="logo-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="4" height="10" rx="1" fill="currentColor"/><path d="M8 8l5-5v10L8 8z" fill="currentColor"/></svg></div>
+      HookPad
     </div>
-    <button class="topbar-settings" onclick="openSettings()" title="Configurações">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-    </button>
+    <div class="topbar-sep"></div>
+    <div class="topbar-actions">
+      <span class="version-badge">v2.0</span>
+      <button class="icon-btn" onclick="switchHowTo()" title="Como usar"><i data-lucide="book-open" style="width:15px;height:15px;"></i></button>
+      <button class="icon-btn" onclick="openSettings()" title="Configurações"><i data-lucide="settings" style="width:15px;height:15px;"></i></button>
+    </div>
   </div>
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="sidebar-header">
-      <h2>Scripts</h2>
-      <button class="btn-new" onclick="openNewModal()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Novo
+    <div class="sidebar-head">
+      <span class="sidebar-title">Scripts</span>
+      <button class="btn-new-script" onclick="openNewModal()">
+        <i data-lucide="plus" style="width:12px;height:12px;"></i> Novo
       </button>
     </div>
-    <div class="script-list" id="script-list">
-      <div style="padding:16px;text-align:center;color:var(--text2);font-size:12px;">Nenhum script ainda</div>
-    </div>
+    <div class="script-list" id="script-list"></div>
   </div>
 
   <!-- Main -->
-  <div class="main" id="main">
+  <div class="main" id="main-area">
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state" style="display:flex;">
+      <div class="empty-icon"><i data-lucide="webhook" style="width:36px;height:36px;"></i></div>
+      <div class="empty-label">Selecione ou crie um script</div>
+    </div>
 
-    <!-- Scripts page -->
-    <div class="page show" id="page-scripts">
-      <div class="empty-state" id="empty-state">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="8" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2"/><path d="M16 20h16M16 24h10M16 28h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <p>Selecione ou crie um script</p>
-      </div>
-
-      <div class="editor-panel" id="editor-panel" style="display:none">
-        <div class="panel-tabs">
-          <div class="tab active" id="tab-code"    onclick="switchTab('code')">Código</div>
-          <div class="tab"        id="tab-config"  onclick="switchTab('config')">Configuração</div>
-          <div class="tab"        id="tab-test"    onclick="switchTab('test')">Testar</div>
-          <div class="tab"        id="tab-history" onclick="switchTab('history')">Histórico</div>
-          <div class="tab"        id="tab-howto"   onclick="switchTab('howto')">Como usar</div>
-          <div class="tab-spacer"></div>
-        </div>
-
-        <!-- Code Tab -->
-        <div class="code-tab" id="pane-code">
-          <div id="monaco-container"></div>
-        </div>
-
-        <!-- Config Tab -->
-        <div class="config-tab" id="pane-config">
-          <div class="field-group">
-            <label class="field-label">Nome</label>
-            <input id="cfg-name" class="field-input" placeholder="meu-script">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Descrição</label>
-            <textarea id="cfg-desc" class="field-input" rows="2" placeholder="O que este script faz..."></textarea>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Status</label>
-            <div class="toggle-row">
-              <label class="toggle"><input type="checkbox" id="cfg-enabled" checked><span class="toggle-slider"></span></label>
-              <span class="toggle-label">Script ativo</span>
-            </div>
-          </div>
-
-          <div class="config-section-title">Trigger</div>
-          <div class="field-group">
-            <div class="trigger-row">
-              <div class="trigger-btn sel-webhook" id="trig-webhook" onclick="selectTrigger('webhook')">
-                🔗 Webhook
-                <small>Chamado via HTTP</small>
-              </div>
-              <div class="trigger-btn" id="trig-schedule" onclick="selectTrigger('schedule')">
-                🕐 Schedule
-                <small>Execução agendada</small>
-              </div>
-            </div>
-          </div>
-
-          <div id="webhook-config">
-            <div class="field-group">
-              <label class="field-label">Método HTTP</label>
-              <div class="method-row">
-                <div class="method-btn" id="method-get"  onclick="selectMethod('GET')">GET</div>
-                <div class="method-btn" id="method-post" onclick="selectMethod('POST')">POST</div>
-              </div>
-            </div>
-          </div>
-
-          <div id="schedule-config" style="display:none">
-            <div class="field-group">
-              <label class="field-label">Intervalo de execução</label>
-              <div class="schedule-options">
-                <div class="schedule-opt" id="sched-5min"   onclick="selectSchedule('5min')">A cada 5 min</div>
-                <div class="schedule-opt" id="sched-1h"     onclick="selectSchedule('1h')">A cada 1 hora</div>
-                <div class="schedule-opt" id="sched-daily"  onclick="selectSchedule('daily')">Diário</div>
-                <div class="schedule-opt" id="sched-weekly" onclick="selectSchedule('weekly')">Semanal</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="config-section-title">Token de autenticação</div>
-          <div class="field-group">
-            <div class="token-section" id="token-section">
-              <!-- Sem token -->
-              <div class="token-no-token" id="token-empty">
-                <p>Nenhum token gerado. Gere um token para ativar o webhook.</p>
-                <div class="generate-token-form">
-                  <p>Expiração do token</p>
-                  <div class="expiry-opts">
-                    <div class="expiry-opt sel" id="expiry-never"  onclick="selectExpiry('never')">Nunca</div>
-                    <div class="expiry-opt"     id="expiry-1h"     onclick="selectExpiry('1h')">1h</div>
-                    <div class="expiry-opt"     id="expiry-24h"    onclick="selectExpiry('24h')">24h</div>
-                    <div class="expiry-opt"     id="expiry-7d"     onclick="selectExpiry('7d')">7 dias</div>
-                    <div class="expiry-opt"     id="expiry-30d"    onclick="selectExpiry('30d')">30 dias</div>
-                  </div>
-                  <button class="btn-primary" onclick="generateToken()" style="width:100%">Gerar token</button>
-                </div>
-              </div>
-              <!-- Com token -->
-              <div class="token-has-token" id="token-filled" style="display:none">
-                <div class="token-val-row">
-                  <div class="token-val" id="cfg-token">—</div>
-                  <button class="btn-sm" onclick="copyToken()">Copiar</button>
-                </div>
-                <div class="token-meta">
-                  <span class="token-expiry" id="token-expiry-label">—</span>
-                  <div class="token-actions">
-                    <button class="btn-sm" onclick="showRegenerateForm()">Novo token</button>
-                    <button class="btn-sm danger" onclick="revokeToken()">Revogar</button>
-                  </div>
-                </div>
-                <!-- Regen form (hidden by default) -->
-                <div id="regen-form" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
-                  <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:8px;">Nova expiração</p>
-                  <div class="expiry-opts">
-                    <div class="expiry-opt sel" id="rexpiry-never" onclick="selectReExpiry('never')">Nunca</div>
-                    <div class="expiry-opt" id="rexpiry-1h"    onclick="selectReExpiry('1h')">1h</div>
-                    <div class="expiry-opt" id="rexpiry-24h"   onclick="selectReExpiry('24h')">24h</div>
-                    <div class="expiry-opt" id="rexpiry-7d"    onclick="selectReExpiry('7d')">7 dias</div>
-                    <div class="expiry-opt" id="rexpiry-30d"   onclick="selectReExpiry('30d')">30 dias</div>
-                  </div>
-                  <div style="display:flex;gap:8px;margin-top:8px;">
-                    <button class="btn-sm" onclick="document.getElementById('regen-form').style.display='none'" style="flex:1">Cancelar</button>
-                    <button class="btn-primary" onclick="generateToken(true)" style="flex:2">Gerar novo</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="config-section-title">Webhook URL</div>
-          <div class="field-group">
-            <div class="webhook-url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()" title="Clique para copiar">
-              <span class="webhook-url-text no-token-url" id="webhook-url-text">Gere um token para ver a URL</span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.4"><path d="M5 2H2v8h8V7M7 2h3v3M10 2L5 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            </div>
-          </div>
-
-          <div class="field-group" id="usage-example-section" style="display:none">
-            <label class="field-label">Como usar</label>
-            <div class="usage-box" id="usage-example"></div>
-          </div>
-        </div>
-
-        <!-- Test Tab -->
-        <div class="test-tab" id="pane-test">
-          <div class="test-panes">
-            <div class="test-pane">
-              <div class="pane-header">
-                Params / Body (JSON)
-    
-              </div>
-              <div class="pane-body">
-                <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
-              </div>
-            </div>
-            <div class="test-pane">
-              <div class="pane-header">Resultado</div>
-              <div class="pane-body" id="test-output">
-                <div class="output-content" style="color:var(--text2);">Execute o script para ver o resultado...</div>
-              </div>
-              <div class="output-meta" id="output-meta" style="display:none"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- History Tab (per script) -->
-        <div class="history-tab" id="pane-history">
-          <div class="history-header">
-            <span style="font-size:12px;color:var(--text2);">Últimas execuções deste script</span>
-            <div style="flex:1"></div>
-            <button class="btn-sm danger" onclick="clearScriptHistory()">Limpar histórico</button>
-          </div>
-          <div class="history-list" id="script-history-list">
-            <div class="history-empty">Nenhuma execução ainda</div>
-          </div>
-        </div>
-
-        <!-- How To Tab -->
-        <div class="config-tab" id="pane-howto" style="display:none;">
-          <div style="max-width:640px;">
-            <h3 style="font-size:14px;font-weight:600;color:var(--text0);margin-bottom:16px;">Como usar o HookPad</h3>
-
-            <div style="margin-bottom:20px;">
-              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Estrutura do script</div>
-              <p style="font-size:12px;color:var(--text1);line-height:1.7;margin-bottom:10px;">Escreva uma função <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">def main()</code> com os parâmetros que desejar. O HookPad detecta automaticamente os tipos e gera os campos de teste e o exemplo curl.</p>
-              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;overflow-x:auto;">def main(
+    <!-- How-to global -->
+    <div class="howto-pane" id="howto-global">
+      <div class="howto-section">
+        <div class="howto-h">Estrutura do script</div>
+        <div class="howto-p">Escreva uma função <code style="font-family:var(--mono);background:var(--bg3);padding:1px 5px;border-radius:3px;">def main()</code> com os parâmetros. O HookPad detecta os tipos automaticamente.</div>
+        <pre class="howto-pre">def main(
     nome: str,
     numero: int = 42,
     dados: dict = {},
     arquivo: bytes = bytes(0),
 ):
-    print(f"Olá {nome}, número: {numero}")
     return {"ok": True, "nome": nome}</pre>
-            </div>
-
-            <div style="margin-bottom:20px;">
-              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Tipos suportados</div>
-              <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                <tr style="border-bottom:1px solid var(--line);">
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">str</td>
-                  <td style="padding:6px 10px;color:var(--text1);">Texto simples</td>
-                  <td style="padding:6px 10px;color:var(--text2);">"valor"</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--line);">
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">int / float</td>
-                  <td style="padding:6px 10px;color:var(--text1);">Número</td>
-                  <td style="padding:6px 10px;color:var(--text2);">42</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--line);">
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">bool</td>
-                  <td style="padding:6px 10px;color:var(--text1);">Booleano</td>
-                  <td style="padding:6px 10px;color:var(--text2);">true / false</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--line);">
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">dict</td>
-                  <td style="padding:6px 10px;color:var(--text1);">JSON object</td>
-                  <td style="padding:6px 10px;color:var(--text2);">{"chave": "valor"}</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--line);">
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">list</td>
-                  <td style="padding:6px 10px;color:var(--text1);">JSON array</td>
-                  <td style="padding:6px 10px;color:var(--text2);">[1, 2, 3]</td>
-                </tr>
-                <tr>
-                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">bytes</td>
-                  <td style="padding:6px 10px;color:var(--text1);">Arquivo binário</td>
-                  <td style="padding:6px 10px;color:var(--text2);">base64 ou multipart</td>
-                </tr>
-              </table>
-            </div>
-
-            <div style="margin-bottom:20px;">
-              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Retorno</div>
-              <p style="font-size:12px;color:var(--text1);line-height:1.7;margin-bottom:8px;">O valor retornado por <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">return</code> vira o body da resposta HTTP:</p>
-              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;">return {"status": "ok"}   # → JSON
-return b"\x89PNG..."      # → application/octet-stream (binário)
-print("qualquer coisa")   # → vai no stdout da resposta</pre>
-            </div>
-
-            <div style="margin-bottom:20px;">
-              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Enviar arquivo binário</div>
-              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;overflow-x:auto;"># Via multipart (recomendado para arquivos)
-curl -X POST "URL" \
-  -H "X-Token: TOKEN" \
-  -F "arquivo=@meu.pdf"
+      </div>
+      <div class="howto-section">
+        <div class="howto-h">Tipos suportados</div>
+        <table class="howto-table">
+          <tr><td>str</td><td>Texto simples → "valor"</td></tr>
+          <tr><td>int / float</td><td>Número → 42</td></tr>
+          <tr><td>bool</td><td>Booleano → true / false</td></tr>
+          <tr><td>dict</td><td>JSON object → {}</td></tr>
+          <tr><td>list</td><td>JSON array → []</td></tr>
+          <tr><td>bytes</td><td>Binário → base64 ou multipart</td></tr>
+        </table>
+      </div>
+      <div class="howto-section">
+        <div class="howto-h">Enviar arquivo binário</div>
+        <pre class="howto-pre"># Via multipart
+curl -X POST "URL" -H "X-Token: TOKEN" -F "arquivo=@meu.pdf"
 
 # Via JSON com base64
-curl -X POST "URL" \
-  -H "X-Token: TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"arquivo\": \"$(base64 -w0 meu.pdf)\"}"
+curl -X POST "URL" -H "X-Token: TOKEN" \
+  -d "{\"arquivo\": \"$(base64 -w0 meu.pdf)\"}"</pre>
+      </div>
+      <div class="howto-section">
+        <div class="howto-h">Retorno</div>
+        <pre class="howto-pre">return {"status": "ok"}   # → JSON direto
+return b"\x89PNG..."      # → application/octet-stream</pre>
+      </div>
+    </div>
 
-# Body binário puro (injeta como param \"file\")
-curl -X POST "URL" \
-  -H "X-Token: TOKEN" \
-  --data-binary @meu.pdf</pre>
-            </div>
+    <!-- Editor panel -->
+    <div class="editor-panel" id="editor-panel" style="display:none;">
+      <div class="tabs-bar">
+        <div class="tab active" id="tab-code"    onclick="switchTab('code')">Código</div>
+        <div class="tab"        id="tab-config"  onclick="switchTab('config')">Configuração</div>
+        <div class="tab"        id="tab-test"    onclick="switchTab('test')">Testar</div>
+        <div class="tab"        id="tab-history" onclick="switchTab('history')">Histórico</div>
+        <div class="tab-spacer"></div>
+      </div>
 
-            <div>
-              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Dependências</div>
-              <p style="font-size:12px;color:var(--text1);line-height:1.7;">Apenas dê <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">import</code> no topo do script. O HookPad instala automaticamente ao salvar. Cada script tem seu próprio ambiente virtual isolado.</p>
+      <!-- Code -->
+      <div class="code-pane" id="pane-code">
+        <div id="monaco-container"></div>
+      </div>
+
+      <!-- Config -->
+      <div class="config-pane" id="pane-config">
+        <!-- General -->
+        <div class="config-section">
+          <div class="config-section-title">Geral</div>
+          <div class="field"><label class="field-label">Nome</label><input id="cfg-name" class="field-input" placeholder="meu-script"></div>
+          <div class="field"><label class="field-label">Descrição</label><input id="cfg-desc" class="field-input" placeholder="O que este script faz..."></div>
+          <div class="field">
+            <div class="toggle-row">
+              <label class="toggle"><input type="checkbox" id="cfg-enabled" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Ativo</span>
             </div>
           </div>
         </div>
 
-        <!-- Action bar -->
-        <div class="action-bar">
-          <button class="btn-primary" onclick="saveScript()" id="btn-save">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h7l2 2v7H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M4 2v3h5V2M4 8h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-            Salvar
-          </button>
-          <button class="btn-run" onclick="runTest()" id="btn-run">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg>
-            Executar
-          </button>
-          <span class="bar-spacer"></span>
-          <span class="status-msg" id="status-msg"></span>
-          <button class="btn-danger" onclick="deleteScript()">Deletar</button>
+        <!-- Trigger -->
+        <div class="config-section">
+          <div class="config-section-title">Trigger</div>
+          <div class="field">
+            <div class="segmented">
+              <button class="seg-btn" id="trig-webhook"  onclick="selectTrigger('webhook')">Webhook</button>
+              <button class="seg-btn" id="trig-schedule" onclick="selectTrigger('schedule')">Agendado</button>
+            </div>
+          </div>
+          <div id="webhook-config">
+            <div class="field">
+              <label class="field-label">Método HTTP</label>
+              <div class="segmented">
+                <button class="seg-btn" id="method-get"  onclick="selectMethod('GET')">GET</button>
+                <button class="seg-btn" id="method-post" onclick="selectMethod('POST')">POST</button>
+              </div>
+            </div>
+          </div>
+          <div id="schedule-config" style="display:none;">
+            <div class="field">
+              <label class="field-label">Intervalo</label>
+              <div class="schedule-grid">
+                <div class="schedule-opt" id="sched-5min"   onclick="selectSchedule('5min')">5 min</div>
+                <div class="schedule-opt" id="sched-1h"     onclick="selectSchedule('1h')">1 hora</div>
+                <div class="schedule-opt" id="sched-daily"  onclick="selectSchedule('daily')">Diário</div>
+                <div class="schedule-opt" id="sched-weekly" onclick="selectSchedule('weekly')">Semanal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Token -->
+        <div class="config-section" id="webhook-token-section">
+          <div class="config-section-title">Token de autenticação</div>
+          <div class="token-box">
+            <div id="token-empty" class="token-empty-state">
+              <p>Nenhum token gerado. Gere um token para ativar o webhook.</p>
+              <div class="expiry-row" id="expiry-opts">
+                <div class="expiry-opt sel" id="expiry-never" onclick="selectExpiry('never')">Nunca expira</div>
+                <div class="expiry-opt" id="expiry-1h"  onclick="selectExpiry('1h')">1h</div>
+                <div class="expiry-opt" id="expiry-24h" onclick="selectExpiry('24h')">24h</div>
+                <div class="expiry-opt" id="expiry-7d"  onclick="selectExpiry('7d')">7d</div>
+                <div class="expiry-opt" id="expiry-30d" onclick="selectExpiry('30d')">30d</div>
+              </div>
+              <button class="btn-primary" onclick="generateToken(false)" style="align-self:flex-start;">Gerar token</button>
+            </div>
+            <div id="token-filled" class="token-filled-state" style="display:none;">
+              <div class="token-value-row">
+                <div class="token-val" id="cfg-token"></div>
+                <button class="btn-sm" onclick="copyToken()"><i data-lucide="copy" style="width:11px;height:11px;"></i></button>
+              </div>
+              <div class="token-actions-row">
+                <span class="token-expiry-label" id="token-expiry-label"></span>
+                <div class="token-btns">
+                  <button class="btn-sm" onclick="showRegenerateForm()">Renovar</button>
+                  <button class="btn-sm danger" onclick="revokeToken()">Revogar</button>
+                </div>
+              </div>
+              <div id="regen-form" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+                <div class="regen-form-label">Expiração do novo token</div>
+                <div class="expiry-row" id="rexpiry-opts">
+                  <div class="expiry-opt sel" id="rexpiry-never" onclick="selectReExpiry('never')">Nunca</div>
+                  <div class="expiry-opt" id="rexpiry-1h"  onclick="selectReExpiry('1h')">1h</div>
+                  <div class="expiry-opt" id="rexpiry-24h" onclick="selectReExpiry('24h')">24h</div>
+                  <div class="expiry-opt" id="rexpiry-7d"  onclick="selectReExpiry('7d')">7d</div>
+                  <div class="expiry-opt" id="rexpiry-30d" onclick="selectReExpiry('30d')">30d</div>
+                </div>
+                <button class="btn-primary" onclick="generateToken(true)" style="margin-top:8px;">Gerar novo token</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Webhook URL -->
+        <div class="config-section" id="webhook-url-section">
+          <div class="config-section-title">Webhook URL</div>
+          <div class="url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()">
+            <span class="url-box-text url-no-token" id="webhook-url-text">Gere um token para ver a URL</span>
+            <i data-lucide="external-link" style="width:12px;height:12px;flex-shrink:0;opacity:.4;"></i>
+          </div>
+        </div>
+
+        <!-- Example curl -->
+        <div class="config-section" id="curl-example-section" style="display:none;">
+          <div class="config-section-title">Example curl</div>
+          <div class="curl-box-wrap">
+            <pre class="curl-box" id="curl-example"></pre>
+            <button class="curl-copy-btn" onclick="copyCurl()">
+              <i data-lucide="copy" style="width:11px;height:11px;"></i> Copiar
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- Test -->
+      <div class="test-pane" id="pane-test">
+        <div class="test-split">
+          <div class="test-panel">
+            <div class="test-panel-head">
+              Params / Body (JSON)
+            </div>
+            <div class="test-panel-body">
+              <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
+            </div>
+          </div>
+          <div class="test-panel">
+            <div class="test-panel-head">
+              Resultado
+              <div class="test-panel-head-right">
+                <button class="btn-sm" id="copy-result-btn" onclick="copyResult()" style="display:none;">
+                  <i data-lucide="copy" style="width:11px;height:11px;"></i> Copiar
+                </button>
+              </div>
+            </div>
+            <div class="test-panel-body" id="test-output">
+              <div class="result-content" style="color:var(--text3);">Execute o script para ver o resultado...</div>
+            </div>
+            <div class="result-meta" id="result-meta" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="history-pane" id="pane-history">
+        <div class="history-head">
+          <span style="font-size:11px;color:var(--text3);">Execuções recentes</span>
+          <div style="flex:1;"></div>
+          <button class="btn-sm danger" onclick="clearScriptHistory()">
+            <i data-lucide="trash-2" style="width:11px;height:11px;"></i> Limpar
+          </button>
+        </div>
+        <div class="history-list" id="script-history-list">
+          <div class="history-empty">Nenhuma execução ainda</div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn-primary" onclick="saveScript()" id="btn-save">
+          <i data-lucide="save" style="width:13px;height:13px;"></i> Salvar
+        </button>
+        <button class="btn-run" onclick="runTest()" id="btn-run">
+          <i data-lucide="play" style="width:13px;height:13px;"></i> Executar
+        </button>
+        <div class="bar-spacer"></div>
+        <span class="status-msg" id="status-msg"></span>
+        <button class="btn-danger" onclick="deleteScript()">Deletar</button>
+      </div>
     </div>
-
-    <!-- Histórico global removido -->
-
   </div>
 </div>
 
@@ -574,14 +586,8 @@ curl -X POST "URL" \
 <div class="modal-backdrop hidden" id="new-modal">
   <div class="modal">
     <h3>Novo script</h3>
-    <div class="field-group">
-      <label class="field-label">Nome</label>
-      <input id="new-name" class="field-input" placeholder="meu-script" autofocus>
-    </div>
-    <div class="field-group">
-      <label class="field-label">Descrição (opcional)</label>
-      <input id="new-desc" class="field-input" placeholder="O que este script faz...">
-    </div>
+    <div class="field"><label class="field-label">Nome</label><input id="new-name" class="field-input" placeholder="meu-script" autofocus></div>
+    <div class="field"><label class="field-label">Descrição (opcional)</label><input id="new-desc" class="field-input" placeholder="O que este script faz..."></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeNewModal()">Cancelar</button>
       <button class="btn-primary" onclick="createScript()">Criar</button>
@@ -593,12 +599,14 @@ curl -X POST "URL" \
 <div class="modal-backdrop hidden" id="settings-modal">
   <div class="modal">
     <h3>Configurações</h3>
-    <div class="field-group">
-      <label class="field-label">Retenção do histórico</label>
-      <div class="history-days-opts">
-        <div class="history-days-opt" id="hdays-30"  onclick="selectHistoryDays(30)">30 dias</div>
-        <div class="history-days-opt" id="hdays-60"  onclick="selectHistoryDays(60)">60 dias</div>
-        <div class="history-days-opt" id="hdays-90"  onclick="selectHistoryDays(90)">90 dias</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <span class="settings-row-label">Retenção do histórico</span>
+        <div class="hdays-opts">
+          <div class="hdays-opt" id="hdays-30" onclick="selectHistoryDays(30)">30d</div>
+          <div class="hdays-opt" id="hdays-60" onclick="selectHistoryDays(60)">60d</div>
+          <div class="hdays-opt" id="hdays-90" onclick="selectHistoryDays(90)">90d</div>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -623,8 +631,10 @@ let cfgSchedule = null;
 let selectedExpiry = 'never';
 let selectedReExpiry = 'never';
 let selectedHistoryDays = 30;
-let expandedRuns = new Set();
 let _codeChangeTimer = null;
+let _sigCache = { id: null, code: null, params: [] };
+let _lastResultText = '';
+let _showingHowTo = false;
 
 // ─── Login ───────────────────────────────────────────────────────────────────
 function showLogin(msg) {
@@ -643,35 +653,21 @@ async function doLogin() {
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Entrando...';
   try {
-    const r = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: t })
-    });
-    if (r.ok) {
-      ADMIN_TOKEN = t;
-      localStorage.setItem('admin_token', t);
-      hideLogin();
-      init();
-    } else {
-      document.getElementById('login-error').textContent = 'Token inválido';
-    }
-  } catch(e) {
-    document.getElementById('login-error').textContent = 'Erro de conexão';
-  }
+    const r = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token:t}) });
+    if (r.ok) { ADMIN_TOKEN = t; localStorage.setItem('admin_token', t); hideLogin(); init(); }
+    else { document.getElementById('login-error').textContent = 'Token inválido'; }
+  } catch(e) { document.getElementById('login-error').textContent = 'Erro de conexão'; }
   btn.disabled = false; btn.textContent = 'Entrar';
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 const API = async (method, path, body) => {
-  const r = await fetch(path, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const opts = { method, headers: { 'x-admin-token': ADMIN_TOKEN } };
+  if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch(path, opts);
   if (!r.ok) {
     const e = await r.json().catch(() => ({ detail: r.statusText }));
-    if (r.status === 401) { localStorage.removeItem('admin_token'); ADMIN_TOKEN = ''; showLogin('Sessão expirada ou token inválido'); return; }
+    if (r.status === 401) { localStorage.removeItem('admin_token'); ADMIN_TOKEN = ''; showLogin('Sessão expirada'); return; }
     throw new Error(e.detail || r.statusText);
   }
   return r.json();
@@ -683,303 +679,244 @@ require(['vs/editor/editor.main'], () => {
   monaco.editor.defineTheme('hookpad', {
     base: 'vs-dark', inherit: true,
     rules: [
-      { token: 'keyword',    foreground: '93c5fd' },
-      { token: 'string',     foreground: '86efac' },
-      { token: 'comment',    foreground: '4b5563', fontStyle: 'italic' },
-      { token: 'number',     foreground: 'fbbf24' },
+      { token: 'keyword', foreground: '60a5fa' },
+      { token: 'string',  foreground: '4ade80' },
+      { token: 'comment', foreground: '4b5563', fontStyle: 'italic' },
+      { token: 'number',  foreground: 'fbbf24' },
     ],
     colors: {
-      'editor.background': '#0d0e11',
-      'editor.foreground': '#e8eaf0',
-      'editorLineNumber.foreground': '#2e3340',
-      'editorLineNumber.activeForeground': '#5c6478',
-      'editor.selectionBackground': '#3b82f633',
-      'editor.lineHighlightBackground': '#13151a',
+      'editor.background': '#0a0a0a',
+      'editor.foreground': '#ededed',
+      'editorLineNumber.foreground': '#333333',
+      'editorLineNumber.activeForeground': '#666666',
+      'editor.selectionBackground': '#3b82f622',
+      'editor.lineHighlightBackground': '#111111',
       'editorCursor.foreground': '#3b82f6',
     }
   });
-
-  const editorOpts = {
-    theme: 'hookpad',
-    fontSize: 13,
-    fontFamily: "'JetBrains Mono', monospace",
-    fontLigatures: true,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    padding: { top: 16, bottom: 16 },
-    automaticLayout: true,
-    tabSize: 4,
-    insertSpaces: true,
+  const opts = {
+    theme: 'hookpad', fontSize: 13,
+    fontFamily: "'Geist Mono', monospace", fontLigatures: true,
+    minimap: { enabled: false }, scrollBeyondLastLine: false,
+    padding: { top: 14, bottom: 14 }, automaticLayout: true,
+    tabSize: 4, insertSpaces: true,
   };
-
   codeEditor = monaco.editor.create(document.getElementById('monaco-container'), {
-    ...editorOpts,
-    language: 'python',
-    lineNumbers: 'on',
-    renderLineHighlight: 'gutter',
-    value: getDefaultCode(),
+    ...opts, language: 'python', lineNumbers: 'on', value: getDefaultCode(),
   });
-
   testEditor = monaco.editor.create(document.getElementById('test-input-editor'), {
-    ...editorOpts,
-    language: 'json',
-    fontSize: 12,
-    lineNumbers: 'off',
-    value: '{\n  \n}',
+    ...opts, language: 'json', fontSize: 12, lineNumbers: 'off', value: '{\n  \n}',
   });
-
-  // Auto-render params e curl ao editar o código
   codeEditor.onDidChangeModelContent(() => {
     clearTimeout(_codeChangeTimer);
     _codeChangeTimer = setTimeout(() => {
       if (currentId) {
         renderTestParamsFromCode(codeEditor.getValue());
-        renderUsageExample(scripts[currentId]);
+        renderCurlExample(scripts[currentId]);
       }
     }, 600);
   });
-
-  // Mostra login imediatamente se não há token
   if (!ADMIN_TOKEN) showLogin();
   init();
 });
 
 function getDefaultCode() {
   return `# HookPad Script
-# Variáveis disponíveis:
-#   __params__  → dict com todos os parâmetros recebidos
-#   Cada param também vira variável direta
+# Use def main() para detectar parâmetros automaticamente
 
-nome = __params__.get("nome", "Mundo")
-numero = __params__.get("numero", 42)
-
-print(f"Olá, {nome}!")
-print(f"Número dobrado: {int(numero) * 2}")
+def main(nome: str = "Mundo", numero: int = 42):
+    return {"mensagem": f"Olá, {nome}!", "dobro": numero * 2}
 `;
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
-  // Se não tem token salvo, mostra login
   if (!ADMIN_TOKEN) { showLogin(); return; }
-  // Valida token antes de carregar
   try {
-    const r = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: ADMIN_TOKEN })
-    });
-    if (!r.ok) { showLogin('Token inválido ou expirado'); return; }
+    const r = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token:ADMIN_TOKEN}) });
+    if (!r.ok) { showLogin('Token inválido'); return; }
   } catch(e) {}
   hideLogin();
-  try {
-    const r = await fetch('/api/base-url');
-    const data = await r.json();
-    BASE_URL = data.base_url;
-  } catch(e) {
-    BASE_URL = window.location.origin;
-  }
+  try { const d = await (await fetch('/api/base-url')).json(); BASE_URL = d.base_url || window.location.origin; }
+  catch(e) { BASE_URL = window.location.origin; }
   await loadScripts();
   loadSettingsData();
 }
 
+// ─── Scripts ─────────────────────────────────────────────────────────────────
 async function loadScripts() {
-  try {
-    const list = await API('GET', '/api/scripts');
-    scripts = {};
-    list.forEach(s => scripts[s.id] = s);
-    renderList();
-  } catch(e) {}
+  try { const list = await API('GET', '/api/scripts'); scripts = {}; list.forEach(s => scripts[s.id] = s); renderList(); }
+  catch(e) {}
 }
 
 function renderList() {
   const el = document.getElementById('script-list');
   const ids = Object.keys(scripts);
-  if (!ids.length) {
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2);font-size:12px;">Nenhum script ainda</div>';
-    return;
-  }
+  if (!ids.length) { el.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:12px;">Nenhum script</div>'; return; }
   el.innerHTML = ids.map(id => {
     const s = scripts[id];
     let badge = '';
-    if (!s.enabled) {
-      badge = '<span class="method-badge badge-off">OFF</span>';
-    } else if (s.trigger === 'schedule') {
-      badge = '<span class="method-badge badge-sched">SCHED</span>';
-    } else if (s.token_expired) {
-      badge = '<span class="method-badge badge-exp">EXP</span>';
-    } else {
-      badge = `<span class="method-badge ${s.method === 'GET' ? 'badge-get' : 'badge-post'}">${s.method}</span>`;
-    }
-    const pkgDot = s.packages_ready === false
-      ? '<span title="Dependências não instaladas" style="width:6px;height:6px;border-radius:50%;background:var(--yellow);display:inline-block;margin-left:2px;flex-shrink:0;"></span>'
-      : '';
-    return `<div class="script-item ${currentId === id ? 'active' : ''}" onclick="selectScript('${id}')">
-      <div class="script-item-name" style="display:flex;align-items:center;gap:5px;">${esc(s.name)}${pkgDot}</div>
-      <div class="script-item-meta">${badge}<span class="script-item-desc">${esc(s.description||'—')}</span></div>
-    </div>`;
+    if (!s.enabled) badge = '<span class="badge badge-off">OFF</span>';
+    else if (s.trigger === 'schedule') badge = '<span class="badge badge-sched">SCHED</span>';
+    else if (s.token_expired) badge = '<span class="badge badge-exp">EXP</span>';
+    else badge = '<span class="badge ' + (s.method === 'GET' ? 'badge-get' : 'badge-post') + '">' + s.method + '</span>';
+    const dot = s.packages_ready === false ? '<span class="pkg-dot" title="Deps não instaladas"></span>' : '';
+    return '<div class="script-item ' + (currentId === id ? 'active' : '') + '" onclick="selectScript(\'' + id + '\')">'
+      + '<div class="script-item-name">' + esc(s.name) + dot + '</div>'
+      + '<div class="script-item-meta">' + badge + '<span class="script-item-desc">' + esc(s.description || '') + '</span></div>'
+      + '</div>';
   }).join('');
 }
 
-// ─── Select Script ───────────────────────────────────────────────────────────
 function selectScript(id) {
   currentId = id;
   const s = scripts[id];
+  _showingHowTo = false;
+  document.getElementById('howto-global').style.display = 'none';
   renderList();
-
   codeEditor && codeEditor.setValue(s.code || '');
-
   document.getElementById('cfg-name').value = s.name;
   document.getElementById('cfg-desc').value = s.description || '';
-  document.getElementById('cfg-enabled').checked = s.enabled;
-
+  document.getElementById('cfg-enabled').checked = s.enabled !== false;
   cfgMethod = s.method || 'POST';
   cfgTrigger = s.trigger || 'webhook';
   cfgSchedule = s.schedule_interval || null;
-
-  updateMethodButtons();
-  updateTriggerButtons();
-  updateScheduleButtons();
-
+  updateMethodButtons(); updateTriggerButtons(); updateScheduleButtons();
   renderTokenSection(s);
-  _sigCache = { id: currentId, code: null, params: [] }; // invalida cache
+  _sigCache = { id: currentId, code: null, params: [] };
   renderWebhookUrl(s);
-  renderUsageExample(s);
-  renderTestParamsFromCode(s.code || '', true); // force=true ao abrir script
-
+  renderCurlExample(s);
+  renderTestParamsFromCode(s.code || '', true);
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('editor-panel').style.display = 'flex';
   switchTab('code');
-  // Carrega histórico em background ao abrir script
   loadScriptHistory();
 }
 
-// ─── Token rendering ─────────────────────────────────────────────────────────
-function renderTokenSection(s) {
-  const hasToken = !!s.token;
-  document.getElementById('token-empty').style.display  = hasToken ? 'none' : 'block';
-  document.getElementById('token-filled').style.display = hasToken ? 'block' : 'none';
-
-  if (hasToken) {
-    document.getElementById('cfg-token').textContent = s.token;
-    const expiryLabel = document.getElementById('token-expiry-label');
-    if (!s.token_expires_at) {
-      expiryLabel.textContent = 'Sem expiração';
-      expiryLabel.className = 'token-expiry active';
-    } else {
-      const exp = new Date(s.token_expires_at + 'Z');
-      const now = new Date();
-      if (now > exp) {
-        expiryLabel.textContent = 'Token expirado';
-        expiryLabel.className = 'token-expiry expired';
-      } else {
-        expiryLabel.textContent = `Expira: ${exp.toLocaleString('pt-BR')}`;
-        expiryLabel.className = 'token-expiry active';
-      }
-    }
-    document.getElementById('regen-form').style.display = 'none';
-  }
-}
-
-function renderWebhookUrl(s) {
-  const urlText = document.getElementById('webhook-url-text');
-  const usageSection = document.getElementById('usage-example-section');
-  if (!s.token) {
-    urlText.textContent = 'Gere um token para ver a URL';
-    urlText.className = 'webhook-url-text no-token-url';
-    usageSection.style.display = 'none';
+// ─── How-to toggle ────────────────────────────────────────────────────────────
+function switchHowTo() {
+  _showingHowTo = !_showingHowTo;
+  const howto = document.getElementById('howto-global');
+  const editor = document.getElementById('editor-panel');
+  const empty = document.getElementById('empty-state');
+  if (_showingHowTo) {
+    howto.classList.add('show');
+    howto.style.display = 'block';
+    editor.style.display = 'none';
+    empty.style.display = 'none';
   } else {
-    const url = `${BASE_URL}/hook/${s.id}`;
-    urlText.textContent = url;
-    urlText.className = 'webhook-url-text';
-    usageSection.style.display = 'block';
-    updateUsageExample(s);
+    howto.classList.remove('show');
+    howto.style.display = 'none';
+    if (currentId) editor.style.display = 'flex';
+    else empty.style.display = 'flex';
   }
 }
 
-async function renderUsageExample(s) {
-  if (!s || !s.token) return;
-  if (!BASE_URL) {
+// ─── Tabs ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['code','config','test','history'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+  document.getElementById('pane-code').style.display = tab === 'code' ? 'flex' : 'none';
+  document.getElementById('pane-config').classList.toggle('show', tab === 'config');
+  document.getElementById('pane-test').classList.toggle('show', tab === 'test');
+  document.getElementById('pane-history').classList.toggle('show', tab === 'history');
+  if (tab === 'history') loadScriptHistory();
+  if (tab === 'test') renderTestParamsFromCode(codeEditor.getValue());
+  codeEditor && codeEditor.layout();
+  testEditor && testEditor.layout();
+}
+
+// ─── Save ────────────────────────────────────────────────────────────────────
+async function saveScript() {
+  if (!currentId) return;
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; setStatus('', '');
+  try {
+    const updated = await API('PUT', '/api/scripts/' + currentId, {
+      name: document.getElementById('cfg-name').value,
+      description: document.getElementById('cfg-desc').value,
+      code: codeEditor.getValue(),
+      method: cfgMethod, enabled: document.getElementById('cfg-enabled').checked,
+      trigger: cfgTrigger, schedule_interval: cfgSchedule,
+    });
+    scripts[currentId] = updated;
+    renderList(); renderTokenSection(updated); renderWebhookUrl(updated);
+    _sigCache = { id: currentId, code: null, params: [] };
+    renderCurlExample(updated);
+    setStatus('Salvo!', 'ok');
+    setStatus('Instalando dependências...', 'installing');
     try {
-      const r = await fetch('/api/base-url');
-      const d = await r.json();
-      BASE_URL = d.base_url || window.location.origin;
-    } catch(e) { BASE_URL = window.location.origin; }
-  }
-  const url = BASE_URL + '/hook/' + s.id;
-  const token = s.token;
-  const code = codeEditor ? codeEditor.getValue() : (s.code || '');
-  const mainParams = await parseMainSignatureAsync(code);
-  let ex = '';
-  if (s.method === 'GET') {
-    const qp = mainParams.length
-      ? mainParams.map(function(p) { return p.name + '=' + (p.type === 'int' ? '42' : p.type === 'bool' ? 'true' : 'valor'); }).join('&')
-      : 'param=valor';
-    ex = 'curl "' + url + '?token=' + token + '&' + qp + '"';
-  } else {
-    const hasFile = mainParams.some(function(p) { return p.type === 'file'; });
-    if (hasFile) {
-      const bs = ' \\';
-      const lines = ['curl -X POST "' + url + '"' + bs, '  -H "X-Token: ' + token + '"' + bs];
-      mainParams.forEach(function(p) {
-        lines.push('  -F "' + p.name + '=' + (p.type === 'file' ? '@arquivo.bin' : 'valor') + '"' + bs);
-      });
-      if (lines.length) lines[lines.length - 1] = lines[lines.length - 1].replace(/ \\$/, '');
-      ex = lines.join('\n');
-    } else {
-      let bodyParts = [];
-      mainParams.forEach(function(p) {
-        if (p.type === 'int') bodyParts.push('"' + p.name + '": 42');
-        else if (p.type === 'bool') bodyParts.push('"' + p.name + '": true');
-        else if (p.type === 'dict') bodyParts.push('"' + p.name + '": {}');
-        else if (p.type === 'list') bodyParts.push('"' + p.name + '": []');
-        else bodyParts.push('"' + p.name + '": "valor"');
-      });
-      const body = bodyParts.length ? '{' + bodyParts.join(', ') + '}' : '{"param": "valor"}';
-      ex = 'curl -X POST "' + url + '" \\' + '\n' +
-           '     -H "Content-Type: application/json" \\' + '\n' +
-           '     -H "X-Token: ' + token + '" \\' + '\n' +
-           "     -d '" + body + "'";
-    }
-  }
-  document.getElementById('usage-example').textContent = ex;
+      const inst = await API('POST', '/api/scripts/' + currentId + '/install');
+      scripts[currentId].packages_ready = inst.ok;
+      setStatus(inst.ok ? (inst.installed.length ? 'Deps: ' + inst.installed.join(', ') : 'Salvo!') : 'Erro nas deps', inst.ok ? 'ok' : 'err');
+    } catch(e) { setStatus('Salvo!', 'ok'); }
+  } catch(e) { setStatus('Erro: ' + e.message, 'err'); }
+  btn.disabled = false;
 }
 
-// Alias para manter compatibilidade
-function updateUsageExample(s) { renderUsageExample(s); }
+// ─── Test ────────────────────────────────────────────────────────────────────
+async function runTest() {
+  if (!currentId) return;
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;"></i> Executando...';
+  lucide.createIcons();
+  document.getElementById('test-output').innerHTML = '<div class="result-content" style="color:var(--text3);">Executando...</div>';
+  document.getElementById('result-meta').style.display = 'none';
+  document.getElementById('copy-result-btn').style.display = 'none';
+  await saveScript();
+  let params = {};
+  try { params = JSON.parse(testEditor.getValue()); } catch(e) {}
+  try {
+    const result = await API('POST', '/api/scripts/' + currentId + '/test', params);
+    const output = result.result !== undefined ? JSON.stringify(result.result, null, 2) : (result.stdout || '');
+    const isOk = result.success;
+    const errorText = result.error ? (result.error.message || '') + '\n' + (result.error.stack || '') : result.stderr || '';
+    _lastResultText = isOk ? output : errorText;
+    document.getElementById('test-output').innerHTML =
+      '<div class="result-content ' + (isOk ? 'ok' : 'err') + '">'
+      + esc(isOk ? output : errorText) + '</div>';
+    const meta = document.getElementById('result-meta');
+    meta.style.display = 'flex';
+    meta.innerHTML = '<span class="' + (isOk ? 'meta-ok' : 'meta-err') + '">' + (isOk ? '✓ OK' : '✗ Erro') + '</span>'
+      + '<span>' + result.duration_ms + 'ms</span>'
+      + (result.installed_packages && result.installed_packages.length ? '<span class="meta-pkg">⬇ ' + result.installed_packages.join(', ') + '</span>' : '');
+    if (_lastResultText) document.getElementById('copy-result-btn').style.display = 'flex';
+    loadScriptHistory();
+  } catch(e) {
+    _lastResultText = e.message;
+    document.getElementById('test-output').innerHTML = '<div class="result-content err">' + esc(e.message) + '</div>';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="play" style="width:13px;height:13px;"></i> Executar';
+  lucide.createIcons();
+}
 
-// Cache de assinatura para evitar chamadas repetidas
-let _sigCache = { id: null, code: null, params: [] };
+function copyResult() {
+  if (_lastResultText) navigator.clipboard.writeText(_lastResultText);
+  setStatus('Resultado copiado!', 'ok');
+}
 
-// Parsa def main() via backend (usa ast do Python — muito mais robusto que regex)
+// ─── Signature / params ───────────────────────────────────────────────────────
 async function parseMainSignatureAsync(code) {
   if (!currentId) return parseMainSignatureFallback(code);
   if (_sigCache.id === currentId && _sigCache.code === code) return _sigCache.params;
   try {
     const r = await API('GET', '/api/scripts/' + currentId + '/signature');
-    const params = (r.params || []).map(p => ({
-      name: p.name,
-      type: p.type,
-      default: p.default,
-      has_default: p.has_default
-    }));
+    const params = (r.params || []).map(p => ({ name: p.name, type: p.type, default: p.default, has_default: p.has_default }));
     _sigCache = { id: currentId, code, params };
     return params;
-  } catch(e) {
-    return parseMainSignatureFallback(code);
-  }
+  } catch(e) { return parseMainSignatureFallback(code); }
 }
-
-// Fallback regex simples caso o backend não responda
 function parseMainSignatureFallback(code) {
   const params = [];
   const match = code.match(/def main\(([\s\S]*?)\):/);
   if (!match) return params;
   const sig = match[1].replace(/\n/g, ' ').replace(/#[^,)\n]*/g, '');
-  const parts = sig.split(',').map(s => s.trim()).filter(Boolean);
-  for (const part of parts) {
-    const [decl] = part.split('=');
-    const nameTypePart = decl.trim();
+  for (const part of sig.split(',').map(s => s.trim()).filter(Boolean)) {
+    const nameTypePart = part.split('=')[0].trim();
     let name = nameTypePart, type = 'str';
     if (nameTypePart.includes(':')) {
       name = nameTypePart.split(':')[0].trim();
@@ -995,396 +932,251 @@ function parseMainSignatureFallback(code) {
   }
   return params;
 }
-
-// Alias síncrono para compatibilidade (usa cache ou fallback)
 function parseMainSignature(code) {
   if (_sigCache.id === currentId && _sigCache.code === code) return _sigCache.params;
   return parseMainSignatureFallback(code);
 }
-
-// ─── Tabs ────────────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  ['code','config','test','history','howto'].forEach(t => {
-    const el = document.getElementById(`tab-${t}`);
-    if (el) el.classList.toggle('active', t === tab);
-  });
-  document.getElementById('pane-code').style.display = tab === 'code' ? 'flex' : 'none';
-  document.getElementById('pane-config').classList.toggle('show', tab === 'config');
-  document.getElementById('pane-test').classList.toggle('show', tab === 'test');
-  document.getElementById('pane-history').classList.toggle('show', tab === 'history');
-  const howtoEl = document.getElementById('pane-howto');
-  if (howtoEl) howtoEl.style.display = tab === 'howto' ? 'block' : 'none';
-  if (tab === 'history') loadScriptHistory();
-  if (tab === 'test') renderTestParamsFromCode(codeEditor.getValue());
-  codeEditor && codeEditor.layout();
-  testEditor && testEditor.layout();
-}
-
-function showPage(page) {
-  ['scripts'].forEach(p => {
-    const el = document.getElementById('page-' + p);
-    const nav = document.getElementById('nav-' + p);
-    if (el) el.classList.toggle('show', p === page);
-    if (nav) nav.classList.toggle('active', p === page);
-  });
-}
-
-// ─── Save ────────────────────────────────────────────────────────────────────
-async function saveScript() {
-  if (!currentId) return;
-  const btn = document.getElementById('btn-save');
-  btn.disabled = true;
-  setStatus('', '');
-  try {
-    const updated = await API('PUT', `/api/scripts/${currentId}`, {
-      name: document.getElementById('cfg-name').value,
-      description: document.getElementById('cfg-desc').value,
-      code: codeEditor.getValue(),
-      method: cfgMethod,
-      enabled: document.getElementById('cfg-enabled').checked,
-      trigger: cfgTrigger,
-      schedule_interval: cfgSchedule,
-    });
-    scripts[currentId] = updated;
-    renderList();
-    renderTokenSection(updated);
-    scripts[currentId] = updated;
-    renderWebhookUrl(updated);
-    _sigCache = { id: currentId, code: null, params: [] };
-    renderUsageExample(updated);
-    setStatus('Salvo!', 'ok');
-
-    // Pré-instala dependências em background após salvar
-    setStatus('Instalando dependências...', 'installing');
-    try {
-      const inst = await API('POST', `/api/scripts/${currentId}/install`);
-      scripts[currentId].packages_ready = inst.ok;
-      if (inst.ok) {
-        setStatus(inst.installed.length ? `Salvo! Deps instaladas: ${inst.installed.join(', ')}` : 'Salvo!', 'ok');
-      } else {
-        setStatus('Salvo, mas erro ao instalar deps: ' + inst.error, 'err');
-      }
-    } catch(e) {
-      setStatus('Salvo! (erro ao pré-instalar deps)', 'err');
-    }
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
-  btn.disabled = false;
-}
-
-// ─── Test ────────────────────────────────────────────────────────────────────
-async function runTest() {
-  if (!currentId) return;
-  const btn = document.getElementById('btn-run');
-  btn.disabled = true;
-  btn.innerHTML = spinner() + ' Executando...';
-  document.getElementById('test-output').innerHTML = '<div class="output-content" style="color:var(--text2);">Executando...</div>';
-  document.getElementById('output-meta').style.display = 'none';
-  await saveScript();
-  let params = {};
-  try { params = JSON.parse(testEditor.getValue()); } catch(e) {}
-  try {
-    const result = await API('POST', `/api/scripts/${currentId}/test`, params);
-    document.getElementById('test-output').innerHTML =
-      `<div class="output-content ${result.success ? 'success' : 'error'}">${esc(result.stdout || '')}${result.stderr ? '\n\n[stderr]\n' + esc(result.stderr) : ''}</div>`;
-    const meta = document.getElementById('output-meta');
-    meta.style.display = 'flex';
-    meta.innerHTML = `
-      <span class="${result.success ? 'meta-ok' : 'meta-err'}">${result.success ? '✓ sucesso' : '✗ erro'}</span>
-      <span>${result.duration_ms}ms</span>
-      ${result.installed_packages?.length ? `<span class="meta-pkg">⬇ ${result.installed_packages.join(', ')}</span>` : ''}
-      <span>${fmtTime(result.timestamp)}</span>
-    `;
-  } catch(e) {
-    document.getElementById('test-output').innerHTML = `<div class="output-content error">${esc(e.message)}</div>`;
-  }
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M3 2l8 4.5L3 11V2z" fill="currentColor"/></svg> Executar';
-}
-
-// ─── Auto-fill params ─────────────────────────────────────────────────────────
-function fillDetectedParams() { renderTestParamsFromCode(codeEditor.getValue(), true); }
-
-function _applyParamsToEditor(mainParams, force) {
+function _applyParams(params, force) {
   if (!testEditor) return;
-  if (!mainParams.length) {
-    const s = currentId && scripts[currentId];
-    const detected = s ? (s.detected_params || {}) : {};
-    if (force && Object.keys(detected).length) {
-      testEditor.setValue(JSON.stringify(detected, null, 2));
-    }
-    return;
-  }
-  const current = testEditor.getValue().trim();
-  const isEmpty = current === '' || current === '{\n  \n}' || current === '{}';
-  if (!isEmpty && !force) return;
+  const cur = testEditor.getValue().trim();
+  const empty = cur === '' || cur === '{\n  \n}' || cur === '{}';
+  if (!empty && !force) return;
+  if (!params.length) return;
   const obj = {};
-  for (const p of mainParams) {
-    if (p.type === 'file') obj[p.name] = '(base64 ou use multipart/form-data)';
-    else if (p.type === 'int') obj[p.name] = p.has_default && p.default !== null ? p.default : 42;
-    else if (p.type === 'float') obj[p.name] = p.has_default && p.default !== null ? p.default : 0.0;
-    else if (p.type === 'bool') obj[p.name] = p.has_default && p.default !== null ? p.default : true;
-    else if (p.type === 'dict') obj[p.name] = p.has_default && p.default !== null ? p.default : {};
-    else if (p.type === 'list') obj[p.name] = p.has_default && p.default !== null ? p.default : [];
-    else obj[p.name] = p.has_default && p.default !== null ? p.default : 'valor';
-  }
+  params.forEach(p => {
+    if (p.type === 'file') obj[p.name] = '(base64 ou use multipart)';
+    else if (p.type === 'int') obj[p.name] = (p.has_default && p.default !== null) ? p.default : 42;
+    else if (p.type === 'float') obj[p.name] = (p.has_default && p.default !== null) ? p.default : 0.0;
+    else if (p.type === 'bool') obj[p.name] = (p.has_default && p.default !== null) ? p.default : true;
+    else if (p.type === 'dict') obj[p.name] = (p.has_default && p.default !== null) ? p.default : {};
+    else if (p.type === 'list') obj[p.name] = (p.has_default && p.default !== null) ? p.default : [];
+    else obj[p.name] = (p.has_default && p.default !== null) ? p.default : 'valor';
+  });
   testEditor.setValue(JSON.stringify(obj, null, 2));
 }
-
 async function renderTestParamsFromCode(code, force) {
-  const mainParams = await parseMainSignatureAsync(code);
-  _applyParamsToEditor(mainParams, force);
+  const params = await parseMainSignatureAsync(code);
+  _applyParams(params, force);
 }
 
-// ─── Token actions ────────────────────────────────────────────────────────────
-async function generateToken(isRegen = false) {
+// ─── Curl example ─────────────────────────────────────────────────────────────
+async function renderCurlExample(s) {
+  if (!s || !s.token) { document.getElementById('curl-example-section').style.display = 'none'; return; }
+  if (!BASE_URL) { try { const d = await (await fetch('/api/base-url')).json(); BASE_URL = d.base_url || window.location.origin; } catch(e) { BASE_URL = window.location.origin; } }
+  const url = BASE_URL + '/hook/' + s.id;
+  const token = s.token;
+  const code = codeEditor ? codeEditor.getValue() : (s.code || '');
+  const params = await parseMainSignatureAsync(code);
+  let body = '{}';
+  if (params.length) {
+    const obj = {};
+    params.forEach(p => {
+      if (p.type === 'int') obj[p.name] = 42;
+      else if (p.type === 'float') obj[p.name] = 0.0;
+      else if (p.type === 'bool') obj[p.name] = true;
+      else if (p.type === 'dict') obj[p.name] = {};
+      else if (p.type === 'list') obj[p.name] = [];
+      else if (p.type === 'file') obj[p.name] = '<base64>';
+      else obj[p.name] = 'valor';
+    });
+    body = JSON.stringify(obj);
+  }
+  let curl;
+  if (s.method === 'GET') {
+    const qp = params.length ? params.map(p => p.name + '=valor').join('&') : 'param=valor';
+    curl = 'curl "' + url + '?token=' + token + '&' + qp + '"';
+  } else {
+    curl = 'curl -X POST "' + url + '" \\\n'
+         + '     -H "Content-Type: application/json" \\\n'
+         + '     -H "X-Token: ' + token + '" \\\n'
+         + '     -d \'' + body + "'";
+  }
+  document.getElementById('curl-example').textContent = curl;
+  document.getElementById('curl-example-section').style.display = 'block';
+  lucide.createIcons();
+}
+
+function copyCurl() {
+  const txt = document.getElementById('curl-example').textContent;
+  if (txt) navigator.clipboard.writeText(txt);
+  setStatus('curl copiado!', 'ok');
+}
+
+// ─── Webhook URL ──────────────────────────────────────────────────────────────
+function renderWebhookUrl(s) {
+  const urlText = document.getElementById('webhook-url-text');
+  if (!s.token) {
+    urlText.textContent = 'Gere um token para ver a URL';
+    urlText.className = 'url-box-text url-no-token';
+    document.getElementById('curl-example-section').style.display = 'none';
+  } else {
+    const url = BASE_URL + '/hook/' + s.id;
+    urlText.textContent = url;
+    urlText.className = 'url-box-text';
+  }
+}
+function copyWebhookUrl() {
+  const s = scripts[currentId];
+  if (!s || !s.token) return;
+  navigator.clipboard.writeText(BASE_URL + '/hook/' + s.id);
+  setStatus('URL copiada!', 'ok');
+}
+
+// ─── Token ────────────────────────────────────────────────────────────────────
+function renderTokenSection(s) {
+  const has = !!s.token;
+  document.getElementById('token-empty').style.display = has ? 'none' : 'block';
+  document.getElementById('token-filled').style.display = has ? 'block' : 'none';
+  if (has) {
+    document.getElementById('cfg-token').textContent = s.token;
+    const exp = document.getElementById('token-expiry-label');
+    if (s.token_expires_at) {
+      const d = new Date(s.token_expires_at + 'Z');
+      exp.className = 'token-expiry-label ' + (s.token_expired ? 'exp' : 'ok');
+      exp.textContent = (s.token_expired ? 'Expirou: ' : 'Expira: ') + d.toLocaleString('pt-BR');
+    } else {
+      exp.className = 'token-expiry-label ok';
+      exp.textContent = 'Nunca expira';
+    }
+  }
+}
+async function generateToken(isRegen) {
   if (!currentId) return;
   const expiry = isRegen ? selectedReExpiry : selectedExpiry;
   try {
-    const r = await API('POST', `/api/scripts/${currentId}/generate-token`, { expiration: expiry });
+    const r = await API('POST', '/api/scripts/' + currentId + '/generate-token', { expiration: expiry });
     scripts[currentId].token = r.token;
     scripts[currentId].token_expires_at = r.expires_at;
     scripts[currentId].token_expiration = r.expiration;
     scripts[currentId].token_expired = false;
     renderTokenSection(scripts[currentId]);
     renderWebhookUrl(scripts[currentId]);
+    renderCurlExample(scripts[currentId]);
     renderList();
     setStatus('Token gerado!', 'ok');
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
+  } catch(e) { setStatus('Erro: ' + e.message, 'err'); }
 }
-
 async function revokeToken() {
-  if (!currentId) return;
-  if (!confirm('Revogar token? O webhook deixará de funcionar.')) return;
+  if (!currentId || !confirm('Revogar token?')) return;
   try {
-    await API('POST', `/api/scripts/${currentId}/revoke-token`);
+    await API('POST', '/api/scripts/' + currentId + '/revoke-token');
     scripts[currentId].token = null;
     scripts[currentId].token_expires_at = null;
     renderTokenSection(scripts[currentId]);
     renderWebhookUrl(scripts[currentId]);
     renderList();
     setStatus('Token revogado', 'ok');
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
+  } catch(e) { setStatus('Erro: ' + e.message, 'err'); }
 }
+function showRegenerateForm() { document.getElementById('regen-form').style.display = 'block'; }
+function copyToken() { navigator.clipboard.writeText(document.getElementById('cfg-token').textContent); setStatus('Token copiado!', 'ok'); }
 
-function showRegenerateForm() {
-  document.getElementById('regen-form').style.display = 'block';
-}
-
-function copyToken() {
-  navigator.clipboard.writeText(document.getElementById('cfg-token').textContent);
-  setStatus('Token copiado!', 'ok');
-}
-
-function copyWebhookUrl() {
-  const s = scripts[currentId];
-  if (!s?.token) return;
-  navigator.clipboard.writeText(`${BASE_URL}/hook/${s.id}`);
-  setStatus('URL copiada!', 'ok');
-}
-
-// ─── History ─────────────────────────────────────────────────────────────────
+// ─── History ──────────────────────────────────────────────────────────────────
 async function loadScriptHistory() {
   if (!currentId) return;
   try {
-    const runs = await API('GET', `/api/scripts/${currentId}/history`);
-    renderRunList(document.getElementById('script-history-list'), runs, false);
+    const runs = await API('GET', '/api/scripts/' + currentId + '/history');
+    renderHistoryList(runs);
   } catch(e) {}
 }
-
-async function loadGlobalHistory() {
-  try {
-    const runs = await API('GET', '/api/history');
-    renderRunList(document.getElementById('global-history-list'), runs, true);
-  } catch(e) {}
-}
-
-function renderRunList(container, runs, showScript) {
-  if (!runs.length) {
-    container.innerHTML = '<div class="history-empty">Nenhuma execução ainda</div>';
-    return;
-  }
-  container.innerHTML = runs.map((r, i) => {
-    const preview = (r.stdout || r.stderr || '').replace(/\n/g, ' ').slice(0, 80);
-    const scriptLabel = showScript && r.script_name
-      ? '<span style="color:var(--accent);font-size:11px;">' + esc(r.script_name) + '</span>' : '';
-    const statusDot = '<div class="run-status ' + (r.success ? 'run-ok' : 'run-fail') + '" style="margin-top:4px;flex-shrink:0;"></div>';
-    const chevron = '<svg class="run-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    return '<div class="run-item" id="run-item-' + r.id + '" onclick="toggleRun(\'' + r.id + '\')">'
-
-      + statusDot
-      + '<div class="run-body" style="flex:1;min-width:0;">'
-      + '  <div class="run-top">'
-      + '    ' + scriptLabel
-      + '    <span class="run-time">' + fmtTime(r.timestamp) + '</span>'
-      + '    <span class="run-trigger trig-' + (r.triggered_by||'webhook') + '">' + (r.triggered_by||'webhook') + '</span>'
-      + '    <span class="run-duration">' + r.duration_ms + 'ms</span>'
-      + '  </div>'
-      + '  <div class="run-preview">' + (esc(preview) || '<span style="color:var(--text2);">(sem output)</span>') + '</div>'
+function renderHistoryList(runs) {
+  const el = document.getElementById('script-history-list');
+  if (!runs || !runs.length) { el.innerHTML = '<div class="history-empty">Nenhuma execução ainda</div>'; return; }
+  el.innerHTML = runs.map(r => {
+    const preview = (r.stdout || r.stderr || (r.error && r.error.message) || '').replace(/\n/g, ' ').slice(0, 80);
+    return '<div class="run-row" id="run-row-' + r.id + '" onclick="toggleRun(\'' + r.id + '\')">'
+      + '<div class="run-dot ' + (r.success ? 'ok' : 'fail') + '"></div>'
+      + '<div class="run-info">'
+      + '  <div class="run-time">' + fmtTime(r.timestamp) + '</div>'
+      + '  <div class="run-preview">' + esc(preview || '(sem output)') + '</div>'
       + '</div>'
-      + chevron
+      + '<div class="run-right">'
+      + '  <span class="run-trigger-badge trig-' + (r.triggered_by || 'webhook') + '">' + (r.triggered_by || 'webhook') + '</span>'
+      + '  <span class="run-dur">' + r.duration_ms + 'ms</span>'
+      + '  <i data-lucide="chevron-right" class="run-chevron" style="width:13px;height:13px;" id="chevron-' + r.id + '"></i>'
+      + '</div>'
       + '</div>'
       + '<div class="run-detail" id="run-detail-' + r.id + '">'
-      + (r.stdout ? '<div class="run-detail-label">stdout</div><pre>' + esc(r.stdout) + '</pre>' : '')
-      + (r.stderr ? '<div class="run-detail-label">stderr</div><pre style="color:var(--red)">' + esc(r.stderr) + '</pre>' : '')
-      + (r.installed_packages && r.installed_packages.length ? '<div class="run-detail-label">pacotes instalados</div><pre style="color:var(--purple)">' + r.installed_packages.join(', ') + '</pre>' : '')
-      + (r.params && Object.keys(r.params).length ? '<div class="run-detail-label">params</div><pre>' + esc(JSON.stringify(r.params, null, 2)) + '</pre>' : '')
+      + (r.stdout ? '<div class="run-detail-section"><div class="run-detail-label">stdout</div><div class="run-detail-pre">' + esc(r.stdout) + '</div></div>' : '')
+      + (r.stderr ? '<div class="run-detail-section"><div class="run-detail-label">stderr</div><div class="run-detail-pre err-text">' + esc(r.stderr) + '</div></div>' : '')
+      + (r.error ? '<div class="run-detail-section"><div class="run-detail-label">erro</div><div class="run-detail-pre err-text">' + esc(r.error.message || '') + (r.error.stack ? '\n' + esc(r.error.stack) : '') + '</div></div>' : '')
+      + (r.installed_packages && r.installed_packages.length ? '<div class="run-detail-section"><div class="run-detail-label">pacotes</div><div class="run-detail-pre" style="color:var(--purple);">' + r.installed_packages.join(', ') + '</div></div>' : '')
       + '</div>';
   }).join('');
+  lucide.createIcons();
 }
-
 function toggleRun(id) {
   const detail = document.getElementById('run-detail-' + id);
-  const item = document.getElementById('run-item-' + id);
+  const chevron = document.getElementById('chevron-' + id);
   if (!detail) return;
-  const isOpen = detail.classList.toggle('show');
-  // Rotaciona chevron
-  const chevron = item && item.querySelector('.run-chevron');
-  if (chevron) chevron.style.transform = isOpen ? 'rotate(90deg)' : '';
+  const open = detail.classList.toggle('show');
+  if (chevron) chevron.classList.toggle('open', open);
 }
-
 async function clearScriptHistory() {
-  if (!currentId) return;
-  if (!confirm('Limpar histórico deste script?')) return;
-  await API('DELETE', `/api/scripts/${currentId}/history`);
-  await loadScriptHistory();
+  if (!currentId || !confirm('Limpar histórico?')) return;
+  await API('DELETE', '/api/scripts/' + currentId + '/history');
+  loadScriptHistory();
   setStatus('Histórico limpo', 'ok');
 }
 
-async function clearAllHistory() {
-  if (!confirm('Limpar TODO o histórico?')) return;
-  await API('DELETE', '/api/history');
-  await loadGlobalHistory();
-}
-
-// ─── Delete ──────────────────────────────────────────────────────────────────
+// ─── Delete ───────────────────────────────────────────────────────────────────
 async function deleteScript() {
-  if (!currentId) return;
-  if (!confirm(`Deletar "${scripts[currentId]?.name}"?`)) return;
+  if (!currentId || !confirm('Deletar "' + scripts[currentId]?.name + '"?')) return;
   try {
-    await API('DELETE', `/api/scripts/${currentId}`);
-    delete scripts[currentId];
-    currentId = null;
-    renderList();
+    await API('DELETE', '/api/scripts/' + currentId);
+    delete scripts[currentId]; currentId = null; renderList();
     document.getElementById('empty-state').style.display = 'flex';
     document.getElementById('editor-panel').style.display = 'none';
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
+  } catch(e) { setStatus('Erro: ' + e.message, 'err'); }
 }
 
-// ─── New Modal ────────────────────────────────────────────────────────────────
-function openNewModal() {
-  document.getElementById('new-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('new-name').focus(), 50);
-}
+// ─── New script ───────────────────────────────────────────────────────────────
+function openNewModal() { document.getElementById('new-modal').classList.remove('hidden'); setTimeout(() => document.getElementById('new-name').focus(), 50); }
 function closeNewModal() { document.getElementById('new-modal').classList.add('hidden'); }
-
 async function createScript() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) return;
   try {
-    const s = await API('POST', '/api/scripts', {
-      name,
-      description: document.getElementById('new-desc').value,
-      method: 'POST',
-      trigger: 'webhook',
-      code: getDefaultCode(),
-    });
-    scripts[s.id] = s;
-    closeNewModal();
+    const s = await API('POST', '/api/scripts', { name, description: document.getElementById('new-desc').value, code: getDefaultCode(), method: 'POST', enabled: true, trigger: 'webhook' });
+    scripts[s.id] = s; closeNewModal();
     document.getElementById('new-name').value = '';
     document.getElementById('new-desc').value = '';
-    renderList();
-    selectScript(s.id);
+    renderList(); selectScript(s.id);
   } catch(e) { alert('Erro: ' + e.message); }
 }
 
-// ─── Settings ────────────────────────────────────────────────────────────────
-async function loadSettingsData() {
-  try {
-    const s = await API('GET', '/api/settings');
-    selectedHistoryDays = s.history_days || 30;
-    updateHistoryDaysButtons();
-  } catch(e) {}
-}
-
-function openSettings() {
-  updateHistoryDaysButtons();
-  document.getElementById('settings-modal').classList.remove('hidden');
-}
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function openSettings() { updateHistoryDaysButtons(); document.getElementById('settings-modal').classList.remove('hidden'); }
 function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
-
+async function loadSettingsData() {
+  try { const s = await API('GET', '/api/settings'); selectedHistoryDays = s.history_days || 30; updateHistoryDaysButtons(); } catch(e) {}
+}
 async function saveSettings() {
-  try {
-    await API('PUT', '/api/settings', { history_days: selectedHistoryDays });
-    closeSettings();
-    setStatus('Configurações salvas!', 'ok');
-  } catch(e) {
-    setStatus('Erro: ' + e.message, 'err');
-  }
+  try { await API('PUT', '/api/settings', { history_days: selectedHistoryDays }); closeSettings(); setStatus('Salvo!', 'ok'); } catch(e) { setStatus('Erro: ' + e.message, 'err'); }
 }
+function selectHistoryDays(d) { selectedHistoryDays = d; updateHistoryDaysButtons(); }
+function updateHistoryDaysButtons() { [30,60,90].forEach(d => { const el = document.getElementById('hdays-' + d); if (el) el.classList.toggle('sel', d === selectedHistoryDays); }); }
 
-function selectHistoryDays(d) {
-  selectedHistoryDays = d;
-  updateHistoryDaysButtons();
-}
-
-function updateHistoryDaysButtons() {
-  [30, 60, 90].forEach(d => {
-    document.getElementById(`hdays-${d}`)?.classList.toggle('sel', selectedHistoryDays === d);
-  });
-}
-
-// ─── UI helpers ──────────────────────────────────────────────────────────────
-function selectMethod(m) {
-  cfgMethod = m;
-  updateMethodButtons();
-}
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function selectMethod(m) { cfgMethod = m; updateMethodButtons(); }
 function updateMethodButtons() {
-  document.getElementById('method-get').className  = 'method-btn' + (cfgMethod === 'GET'  ? ' sel-get'  : '');
-  document.getElementById('method-post').className = 'method-btn' + (cfgMethod === 'POST' ? ' sel-post' : '');
+  document.getElementById('method-get').className  = 'seg-btn' + (cfgMethod === 'GET'  ? ' active-get'  : '');
+  document.getElementById('method-post').className = 'seg-btn' + (cfgMethod === 'POST' ? ' active-post' : '');
 }
-
-function selectTrigger(t) {
-  cfgTrigger = t;
-  updateTriggerButtons();
-}
+function selectTrigger(t) { cfgTrigger = t; updateTriggerButtons(); }
 function updateTriggerButtons() {
-  document.getElementById('trig-webhook').className  = 'trigger-btn' + (cfgTrigger === 'webhook'  ? ' sel-webhook'  : '');
-  document.getElementById('trig-schedule').className = 'trigger-btn' + (cfgTrigger === 'schedule' ? ' sel-schedule' : '');
+  document.getElementById('trig-webhook').className  = 'seg-btn' + (cfgTrigger === 'webhook'  ? ' active-webhook'  : '');
+  document.getElementById('trig-schedule').className = 'seg-btn' + (cfgTrigger === 'schedule' ? ' active-schedule' : '');
   document.getElementById('webhook-config').style.display  = cfgTrigger === 'webhook'  ? 'block' : 'none';
   document.getElementById('schedule-config').style.display = cfgTrigger === 'schedule' ? 'block' : 'none';
+  document.getElementById('webhook-token-section').style.display  = cfgTrigger === 'webhook'  ? 'block' : 'none';
+  document.getElementById('webhook-url-section').style.display    = cfgTrigger === 'webhook'  ? 'block' : 'none';
+  document.getElementById('curl-example-section').style.display   = cfgTrigger === 'webhook'  ? 'block' : 'none';
 }
-
-function selectSchedule(s) {
-  cfgSchedule = s;
-  updateScheduleButtons();
-}
-function updateScheduleButtons() {
-  ['5min','1h','daily','weekly'].forEach(s => {
-    document.getElementById(`sched-${s}`)?.classList.toggle('sel', cfgSchedule === s);
-  });
-}
-
-function selectExpiry(e) {
-  selectedExpiry = e;
-  ['never','1h','24h','7d','30d'].forEach(v => {
-    document.getElementById(`expiry-${v}`)?.classList.toggle('sel', v === e);
-  });
-}
-
-function selectReExpiry(e) {
-  selectedReExpiry = e;
-  ['never','1h','24h','7d','30d'].forEach(v => {
-    document.getElementById(`rexpiry-${v}`)?.classList.toggle('sel', v === e);
-  });
-}
+function selectSchedule(s) { cfgSchedule = s; updateScheduleButtons(); }
+function updateScheduleButtons() { ['5min','1h','daily','weekly'].forEach(s => { const el = document.getElementById('sched-' + s); if (el) el.classList.toggle('sel', s === cfgSchedule); }); }
+function selectExpiry(e) { selectedExpiry = e; ['never','1h','24h','7d','30d'].forEach(v => { const el = document.getElementById('expiry-' + v); if (el) el.classList.toggle('sel', v === e); }); }
+function selectReExpiry(e) { selectedReExpiry = e; ['never','1h','24h','7d','30d'].forEach(v => { const el = document.getElementById('rexpiry-' + v); if (el) el.classList.toggle('sel', v === e); }); }
 
 function setStatus(msg, type) {
   const el = document.getElementById('status-msg');
@@ -1392,20 +1184,12 @@ function setStatus(msg, type) {
   el.className = 'status-msg' + (type ? ' ' + type : '');
   if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
 }
-
 function fmtTime(iso) {
   if (!iso) return '';
   const d = new Date(iso + (iso.endsWith('Z') ? '' : 'Z'));
   return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
-
-function spinner() {
-  return `<svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-dasharray="8 8"><animateTransform attributeName="transform" type="rotate" values="0 6.5 6.5;360 6.5 6.5" dur=".8s" repeatCount="indefinite"/></circle></svg>`;
-}
-
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
@@ -1413,17 +1197,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !document.getElementById('new-modal').classList.contains('hidden')) createScript();
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveScript(); }
 });
-</script>
-<script>
-// Mostra login antes do Monaco carregar (evita flash)
-if (!localStorage.getItem('admin_token')) {
-  document.addEventListener('DOMContentLoaded', () => {
-    const ls = document.getElementById('login-screen');
-    const app = document.getElementById('app');
-    if (ls) ls.style.display = 'flex';
-    if (app) app.style.display = 'none';
-  });
-}
+
+// Init icons
+document.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+  if (!localStorage.getItem('admin_token')) showLogin();
+});
 </script>
 </body>
 </html>
