@@ -491,34 +491,35 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
                     pass
             clean_params[k] = v
 
-        # Injeta params — params binários viram bytes
-        inject = "import base64 as __b64\n"
-        inject += f"__params__ = {json.dumps(clean_params)}\n"
+        # Params injetados no INÍCIO — chamada ao main no FINAL do código
+        header = "import base64 as __b64\n"
+        header += f"__params__ = {json.dumps(clean_params)}\n"
         for k, v in clean_params.items():
             safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', k)
             if k in binary_params:
-                inject += f"{safe_key} = __b64.b64decode(__params__.get({json.dumps(k)}))\n"
+                header += f"{safe_key} = __b64.b64decode(__params__.get({json.dumps(k)}))\n"
             else:
-                inject += f"{safe_key} = __params__.get({json.dumps(k)})\n"
+                header += f"{safe_key} = __params__.get({json.dumps(k)})\n"
 
-        # Se tem def main(), chama ela e captura o retorno
+        # Se tem def main(), chama DEPOIS do código do usuário (onde a função está definida)
         has_main = "def main(" in code
+        footer = ""
         if has_main:
             sig_params = parse_main_signature(code)
             call_args = []
             for p in sig_params:
                 safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', p["name"])
                 call_args.append(safe_key)
-            inject += f"\n__result__ = main({', '.join(call_args)})\n"
-            inject += "import json as __json, base64 as __b64r\n"
-            inject += (
+            footer += f"\n__result__ = main({', '.join(call_args)})\n"
+            footer += "import json as __json, base64 as __b64r\n"
+            footer += (
                 "if isinstance(__result__, (bytes, bytearray)):\n"
                 "    print('__BINARY__:' + __b64r.b64encode(__result__).decode())\n"
                 "elif __result__ is not None:\n"
                 "    print(__json.dumps(__result__, ensure_ascii=False, default=str))\n"
             )
 
-        full_code = inject + "\n" + code
+        full_code = header + "\n" + code + "\n" + footer
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
             f.write(full_code)
