@@ -1,6 +1,7 @@
 """
 HookPad v2 — Python Script Webhook Runner
-Melhorias: histórico de runs, token com expiração, schedule, triggers, hash maior, auto-detect params
+Fixes: thread safety, async executor, pre-install, param injection,
+       per-file scripts, schedule validation, utcnow, history pagination
 """
 
 import os
@@ -13,39 +14,51 @@ import secrets
 import subprocess
 import traceback
 import threading
+import asyncio
 import re
+from functools import partial
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # ─── Config ──────────────────────────────────────────────────────────────────
-DATA_DIR    = Path(os.getenv("DATA_DIR", "./scripts_data"))
-VENV_DIR    = DATA_DIR / "venvs"
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "admin-mude-isso")
-BASE_URL    = os.getenv("BASE_URL", "http://localhost:8000")
-TIMEOUT     = int(os.getenv("EXEC_TIMEOUT", "30"))
-HISTORY_DIR = DATA_DIR / "history"
+DATA_DIR     = Path(os.getenv("DATA_DIR", "./scripts_data"))
+VENV_DIR     = DATA_DIR / "venvs"
+SCRIPTS_DIR  = DATA_DIR / "scripts"
+ADMIN_TOKEN  = os.getenv("ADMIN_TOKEN", "admin-mude-isso")
+BASE_URL     = os.getenv("BASE_URL", "http://localhost:8000")
+TIMEOUT      = int(os.getenv("EXEC_TIMEOUT", "30"))
+HISTORY_DIR  = DATA_DIR / "history"
 
-for d in [DATA_DIR, VENV_DIR, HISTORY_DIR]:
+# Arquivo legado (será migrado automaticamente)
+SCRIPTS_FILE_LEGACY = DATA_DIR / "scripts.json"
+
+for d in [DATA_DIR, VENV_DIR, SCRIPTS_DIR, HISTORY_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-SCRIPTS_FILE = DATA_DIR / "scripts.json"
 SETTINGS_FILE = DATA_DIR / "settings.json"
+
+# ─── Thread safety ────────────────────────────────────────────────────────────
+_scripts_lock = threading.Lock()
 
 # ─── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="HookPad", docs_url=None, redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# ─── Helpers de tempo ────────────────────────────────────────────────────────
+def utcnow() -> datetime:
+    """Retorna datetime UTC naive. Compatível com isoformat() em todo o código."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 # ─── Scheduler ───────────────────────────────────────────────────────────────
 scheduler_thread = None
 scheduler_running = False
-scheduler_lock = threading.Lock()
 
 def start_scheduler():
     global scheduler_thread, scheduler_running
@@ -58,12 +71,11 @@ def scheduler_loop():
     while scheduler_running:
         try:
             scripts = load_scripts()
-            now = datetime.utcnow()
+            now = utcnow()
             for sid, s in scripts.items():
                 if not s.get("enabled", True):
                     continue
-                trigger = s.get("trigger", "webhook")
-                if trigger != "schedule":
+                if s.get("trigger", "webhook") != "schedule":
                     continue
                 schedule = s.get("schedule_interval", "")
                 if not schedule:
@@ -76,28 +88,53 @@ def scheduler_loop():
                     last_dt = datetime.fromisoformat(last_run)
                     if (now - last_dt).total_seconds() < interval_minutes * 60:
                         continue
-                # Run it
-                result = run_script(sid, s["code"], {}, triggered_by="schedule")
-                scripts[sid]["last_schedule_run"] = now.isoformat()
-                save_scripts(scripts)
+                run_script(sid, s["code"], {}, triggered_by="schedule")
+                with _scripts_lock:
+                    scripts2 = load_scripts()
+                    if sid in scripts2:
+                        scripts2[sid]["last_schedule_run"] = now.isoformat()
+                        save_script(sid, scripts2[sid])
         except Exception:
             pass
         time.sleep(30)
 
 def schedule_to_minutes(schedule: str) -> Optional[int]:
-    mapping = {
-        "5min": 5, "1h": 60, "daily": 1440, "weekly": 10080
-    }
+    mapping = {"5min": 5, "1h": 60, "daily": 1440, "weekly": 10080}
     return mapping.get(schedule)
 
 # ─── Storage ─────────────────────────────────────────────────────────────────
+def _migrate_legacy():
+    """Migra scripts.json antigo para arquivos individuais."""
+    if not SCRIPTS_FILE_LEGACY.exists():
+        return
+    try:
+        old = json.loads(SCRIPTS_FILE_LEGACY.read_text())
+        for sid, s in old.items():
+            dest = SCRIPTS_DIR / f"{sid}.json"
+            if not dest.exists():
+                dest.write_text(json.dumps(s, indent=2, ensure_ascii=False))
+        SCRIPTS_FILE_LEGACY.rename(SCRIPTS_FILE_LEGACY.with_suffix(".json.bak"))
+    except Exception:
+        pass
+
 def load_scripts() -> dict:
-    if not SCRIPTS_FILE.exists():
-        return {}
-    return json.loads(SCRIPTS_FILE.read_text())
+    scripts = {}
+    for f in SCRIPTS_DIR.glob("*.json"):
+        try:
+            s = json.loads(f.read_text())
+            scripts[f.stem] = s
+        except Exception:
+            pass
+    return scripts
+
+def save_script(sid: str, data: dict):
+    (SCRIPTS_DIR / f"{sid}.json").write_text(
+        json.dumps(data, indent=2, ensure_ascii=False)
+    )
 
 def save_scripts(scripts: dict):
-    SCRIPTS_FILE.write_text(json.dumps(scripts, indent=2, ensure_ascii=False))
+    for sid, data in scripts.items():
+        save_script(sid, data)
 
 def load_settings() -> dict:
     if not SETTINGS_FILE.exists():
@@ -116,12 +153,11 @@ def save_run(script_id: str, result: dict):
         except Exception:
             runs = []
     runs.insert(0, result)
-    # Limita pelo número de dias configurado
     settings = load_settings()
     days = settings.get("history_days", 30)
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
     runs = [r for r in runs if datetime.fromisoformat(r["timestamp"]) > cutoff]
-    runs = runs[:1000]  # max 1000 por script
+    runs = runs[:1000]
     history_file.write_text(json.dumps(runs, indent=2, ensure_ascii=False))
 
 def load_runs(script_id: str) -> list:
@@ -133,7 +169,7 @@ def load_runs(script_id: str) -> list:
     except Exception:
         return []
 
-def load_all_runs() -> list:
+def load_all_runs(limit: int = 50, offset: int = 0) -> list:
     all_runs = []
     scripts = load_scripts()
     for sid in scripts:
@@ -143,7 +179,7 @@ def load_all_runs() -> list:
             r["script_name"] = scripts[sid].get("name", sid)
         all_runs.extend(runs)
     all_runs.sort(key=lambda x: x["timestamp"], reverse=True)
-    return all_runs[:500]
+    return all_runs[offset:offset + limit]
 
 def clear_history(script_id: Optional[str] = None):
     if script_id:
@@ -164,15 +200,16 @@ def check_token_valid(script: dict, provided: str) -> bool:
         return False
     if provided != script["token"]:
         return False
-    # Verifica expiração
     expires_at = script.get("token_expires_at")
     if expires_at:
         exp = datetime.fromisoformat(expires_at)
-        if datetime.utcnow() > exp:
+        if utcnow() > exp:
             return False
     return True
 
 # ─── Models ──────────────────────────────────────────────────────────────────
+VALID_SCHEDULES = {"5min", "1h", "daily", "weekly"}
+
 class ScriptCreate(BaseModel):
     name: str
     description: str = ""
@@ -181,6 +218,13 @@ class ScriptCreate(BaseModel):
     enabled: bool = True
     trigger: str = "webhook"
     schedule_interval: Optional[str] = None
+
+    @field_validator("schedule_interval")
+    @classmethod
+    def validate_schedule(cls, v):
+        if v is not None and v not in VALID_SCHEDULES:
+            raise ValueError(f"schedule_interval deve ser um de: {sorted(VALID_SCHEDULES)}")
+        return v
 
 class ScriptUpdate(BaseModel):
     name: Optional[str] = None
@@ -191,8 +235,15 @@ class ScriptUpdate(BaseModel):
     trigger: Optional[str] = None
     schedule_interval: Optional[str] = None
 
+    @field_validator("schedule_interval")
+    @classmethod
+    def validate_schedule(cls, v):
+        if v is not None and v not in VALID_SCHEDULES:
+            raise ValueError(f"schedule_interval deve ser um de: {sorted(VALID_SCHEDULES)}")
+        return v
+
 class GenerateTokenRequest(BaseModel):
-    expiration: Optional[str] = None  # "never", "1h", "24h", "7d", "30d"
+    expiration: Optional[str] = None
 
 class SettingsUpdate(BaseModel):
     history_days: Optional[int] = None
@@ -236,16 +287,13 @@ def extract_imports(code: str) -> list:
     return [m for m in modules if m not in STDLIB and not m.startswith("_")]
 
 def detect_params(code: str) -> dict:
-    """Detecta parâmetros usados via __params__.get() no código."""
     params = {}
-    # Detecta padrão: __params__.get("nome", valor_padrão) ou __params__.get('nome')
     pattern = r'__params__\.get\(["\'](\w+)["\'](?:,\s*([^)]+))?\)'
     for match in re.finditer(pattern, code):
         key = match.group(1)
         default = match.group(2)
         if default:
             default = default.strip().strip('"\'')
-            # Tenta converter pra tipo correto
             try:
                 default = int(default)
             except (ValueError, TypeError):
@@ -256,8 +304,6 @@ def detect_params(code: str) -> dict:
         else:
             default = ""
         params[key] = default
-    # Também detecta variáveis diretas usadas que vieram de params
-    # Ex: nome = __params__.get('nome', 'Mundo')
     return params
 
 def get_pip_name(module: str) -> str:
@@ -288,7 +334,7 @@ def install_packages(python_bin: Path, packages: list) -> tuple:
 
 def run_script(script_id: str, code: str, params: dict, triggered_by: str = "webhook") -> dict:
     import tempfile
-    start = datetime.utcnow()
+    start = utcnow()
     installed = []
     install_log = ""
     try:
@@ -299,10 +345,11 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             installed = pkgs
             install_log = err
 
+        # FIX 4: json.dumps(k) escapa corretamente qualquer chave
         inject = f"__params__ = {json.dumps(params)}\n"
         for k, v in params.items():
             safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', k)
-            inject += f"{safe_key} = __params__.get('{k}')\n"
+            inject += f"{safe_key} = __params__.get({json.dumps(k)})\n"
         full_code = inject + "\n" + code
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
@@ -314,7 +361,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             capture_output=True, text=True, timeout=TIMEOUT
         )
         Path(tmp_path).unlink(missing_ok=True)
-        duration = int((datetime.utcnow() - start).total_seconds() * 1000)
+        duration = int((utcnow() - start).total_seconds() * 1000)
 
         run_result = {
             "id": str(uuid.uuid4())[:12],
@@ -331,7 +378,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         return run_result
 
     except subprocess.TimeoutExpired:
-        duration = int((datetime.utcnow() - start).total_seconds() * 1000)
+        duration = int((utcnow() - start).total_seconds() * 1000)
         run_result = {
             "id": str(uuid.uuid4())[:12],
             "success": False,
@@ -346,7 +393,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         save_run(script_id, run_result)
         return run_result
     except Exception:
-        duration = int((datetime.utcnow() - start).total_seconds() * 1000)
+        duration = int((utcnow() - start).total_seconds() * 1000)
         run_result = {
             "id": str(uuid.uuid4())[:12],
             "success": False,
@@ -368,16 +415,15 @@ def expiration_to_datetime(expiration: str) -> Optional[str]:
     days = mapping.get(expiration)
     if days is None:
         return None
-    return (datetime.utcnow() + timedelta(days=days)).isoformat()
+    return (utcnow() + timedelta(days=days)).isoformat()
 
 def script_with_url(s: dict, sid: str) -> dict:
     result = dict(s)
     result["webhook_url"] = f"{BASE_URL}/hook/{sid}"
     result["detected_params"] = detect_params(s.get("code", ""))
-    # Verifica se token expirou
     if result.get("token_expires_at"):
         exp = datetime.fromisoformat(result["token_expires_at"])
-        result["token_expired"] = datetime.utcnow() > exp
+        result["token_expired"] = utcnow() > exp
     else:
         result["token_expired"] = False
     return result
@@ -390,9 +436,8 @@ def list_scripts():
 
 @app.post("/api/scripts", dependencies=[Depends(require_admin)])
 def create_script(body: ScriptCreate):
-    scripts = load_scripts()
-    sid = secrets.token_hex(8)  # 16 chars hex
-    scripts[sid] = {
+    sid = secrets.token_hex(8)
+    data = {
         "id": sid,
         "name": body.name,
         "description": body.description,
@@ -404,12 +449,14 @@ def create_script(body: ScriptCreate):
         "token": None,
         "token_expires_at": None,
         "token_expiration": None,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
+        "packages_ready": False,
+        "created_at": utcnow().isoformat(),
+        "updated_at": utcnow().isoformat(),
         "last_schedule_run": None,
     }
-    save_scripts(scripts)
-    return script_with_url(scripts[sid], sid)
+    with _scripts_lock:
+        save_script(sid, data)
+    return script_with_url(data, sid)
 
 @app.get("/api/scripts/{script_id}", dependencies=[Depends(require_admin)])
 def get_script(script_id: str):
@@ -420,59 +467,87 @@ def get_script(script_id: str):
 
 @app.put("/api/scripts/{script_id}", dependencies=[Depends(require_admin)])
 def update_script(script_id: str, body: ScriptUpdate):
-    scripts = load_scripts()
-    if script_id not in scripts:
-        raise HTTPException(404, "Script não encontrado")
-    s = scripts[script_id]
-    for field, val in body.model_dump(exclude_none=True).items():
-        s[field] = val
-    s["updated_at"] = datetime.utcnow().isoformat()
-    scripts[script_id] = s
-    save_scripts(scripts)
+    with _scripts_lock:
+        scripts = load_scripts()
+        if script_id not in scripts:
+            raise HTTPException(404, "Script não encontrado")
+        s = scripts[script_id]
+        for field, val in body.model_dump(exclude_none=True).items():
+            s[field] = val
+        if body.code is not None:
+            s["packages_ready"] = False
+        s["updated_at"] = utcnow().isoformat()
+        save_script(script_id, s)
     return script_with_url(s, script_id)
 
 @app.delete("/api/scripts/{script_id}", dependencies=[Depends(require_admin)])
 def delete_script(script_id: str):
-    scripts = load_scripts()
-    if script_id not in scripts:
-        raise HTTPException(404, "Script não encontrado")
-    del scripts[script_id]
-    save_scripts(scripts)
+    with _scripts_lock:
+        scripts = load_scripts()
+        if script_id not in scripts:
+            raise HTTPException(404, "Script não encontrado")
+        script_file = SCRIPTS_DIR / f"{script_id}.json"
+        if script_file.exists():
+            script_file.unlink()
     venv_path = VENV_DIR / script_id
     if venv_path.exists():
         shutil.rmtree(venv_path)
     clear_history(script_id)
     return {"ok": True}
 
+# ─── Install deps ─────────────────────────────────────────────────────────────
+@app.post("/api/scripts/{script_id}/install", dependencies=[Depends(require_admin)])
+async def install_script_deps(script_id: str):
+    """Pré-instala dependências do script. Chamar automaticamente ao salvar."""
+    scripts = load_scripts()
+    if script_id not in scripts:
+        raise HTTPException(404, "Script não encontrado")
+    s = scripts[script_id]
+
+    def _do_install():
+        python_bin = ensure_venv(script_id)
+        imports = extract_imports(s["code"])
+        pkgs, err = install_packages(python_bin, imports)
+        return pkgs, err
+
+    loop = asyncio.get_event_loop()
+    pkgs, err = await loop.run_in_executor(None, _do_install)
+
+    with _scripts_lock:
+        scripts2 = load_scripts()
+        if script_id in scripts2:
+            scripts2[script_id]["packages_ready"] = (err == "")
+            save_script(script_id, scripts2[script_id])
+
+    return {"installed": pkgs, "error": err, "ok": err == ""}
+
 # ─── Token ───────────────────────────────────────────────────────────────────
 @app.post("/api/scripts/{script_id}/generate-token", dependencies=[Depends(require_admin)])
 def generate_token(script_id: str, body: GenerateTokenRequest):
-    scripts = load_scripts()
-    if script_id not in scripts:
-        raise HTTPException(404, "Script não encontrado")
-    token = secrets.token_urlsafe(32)
-    expires_at = expiration_to_datetime(body.expiration)
-    scripts[script_id]["token"] = token
-    scripts[script_id]["token_expires_at"] = expires_at
-    scripts[script_id]["token_expiration"] = body.expiration or "never"
-    scripts[script_id]["updated_at"] = datetime.utcnow().isoformat()
-    save_scripts(scripts)
-    return {
-        "token": token,
-        "expires_at": expires_at,
-        "expiration": body.expiration or "never"
-    }
+    with _scripts_lock:
+        scripts = load_scripts()
+        if script_id not in scripts:
+            raise HTTPException(404, "Script não encontrado")
+        token = secrets.token_urlsafe(32)
+        expires_at = expiration_to_datetime(body.expiration)
+        scripts[script_id]["token"] = token
+        scripts[script_id]["token_expires_at"] = expires_at
+        scripts[script_id]["token_expiration"] = body.expiration or "never"
+        scripts[script_id]["updated_at"] = utcnow().isoformat()
+        save_script(script_id, scripts[script_id])
+    return {"token": token, "expires_at": expires_at, "expiration": body.expiration or "never"}
 
 @app.post("/api/scripts/{script_id}/revoke-token", dependencies=[Depends(require_admin)])
 def revoke_token(script_id: str):
-    scripts = load_scripts()
-    if script_id not in scripts:
-        raise HTTPException(404, "Script não encontrado")
-    scripts[script_id]["token"] = None
-    scripts[script_id]["token_expires_at"] = None
-    scripts[script_id]["token_expiration"] = None
-    scripts[script_id]["updated_at"] = datetime.utcnow().isoformat()
-    save_scripts(scripts)
+    with _scripts_lock:
+        scripts = load_scripts()
+        if script_id not in scripts:
+            raise HTTPException(404, "Script não encontrado")
+        scripts[script_id]["token"] = None
+        scripts[script_id]["token_expires_at"] = None
+        scripts[script_id]["token_expiration"] = None
+        scripts[script_id]["updated_at"] = utcnow().isoformat()
+        save_script(script_id, scripts[script_id])
     return {"ok": True}
 
 # ─── Test ────────────────────────────────────────────────────────────────────
@@ -490,7 +565,14 @@ async def test_script(script_id: str, request: Request):
     except Exception:
         pass
     params.update(dict(request.query_params))
-    return run_script(script_id, s["code"], params, triggered_by="test")
+
+    # FIX 2: thread pool para não bloquear o event loop
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        partial(run_script, script_id, s["code"], params, "test")
+    )
+    return result
 
 # ─── History ─────────────────────────────────────────────────────────────────
 @app.get("/api/scripts/{script_id}/history", dependencies=[Depends(require_admin)])
@@ -506,8 +588,9 @@ def clear_script_history(script_id: str):
     return {"ok": True}
 
 @app.get("/api/history", dependencies=[Depends(require_admin)])
-def get_all_history():
-    return load_all_runs()
+def get_all_history(limit: int = 50, offset: int = 0):
+    # FIX 8: paginação
+    return load_all_runs(limit=limit, offset=offset)
 
 @app.delete("/api/history", dependencies=[Depends(require_admin)])
 def clear_all_history():
@@ -551,7 +634,7 @@ async def _execute_hook(script_id: str, request: Request):
     if not check_token_valid(s, provided):
         if not s.get("token"):
             raise HTTPException(401, "Nenhum token gerado para este script")
-        if s.get("token_expires_at") and datetime.utcnow() > datetime.fromisoformat(s["token_expires_at"]):
+        if s.get("token_expires_at") and utcnow() > datetime.fromisoformat(s["token_expires_at"]):
             raise HTTPException(401, "Token expirado")
         raise HTTPException(401, "Token inválido")
 
@@ -573,7 +656,12 @@ async def _execute_hook(script_id: str, request: Request):
         form = await request.form()
         params.update(dict(form))
 
-    result = run_script(script_id, s["code"], params, triggered_by="webhook")
+    # FIX 2: thread pool para não bloquear o event loop
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        partial(run_script, script_id, s["code"], params, "webhook")
+    )
     return JSONResponse(result, status_code=200 if result["success"] else 500)
 
 @app.get("/hook/{script_id}")
@@ -593,4 +681,5 @@ def frontend():
 # ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def on_startup():
+    _migrate_legacy()
     start_scheduler()

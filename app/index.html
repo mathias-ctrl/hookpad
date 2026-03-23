@@ -204,8 +204,9 @@ textarea.field-input { resize: vertical; min-height: 60px; }
 .btn-sm.danger:hover { background: var(--red-bg); border-color: var(--red); }
 .bar-spacer { flex: 1; }
 .status-msg { font-size: 12px; color: var(--text2); font-family: var(--mono); }
-.status-msg.ok  { color: var(--green); }
-.status-msg.err { color: var(--red); }
+.status-msg.ok          { color: var(--green); }
+.status-msg.err         { color: var(--red); }
+.status-msg.installing  { color: var(--yellow); }
 
 /* Settings modal */
 .modal-backdrop { position: fixed; inset: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(3px); }
@@ -653,8 +654,11 @@ function renderList() {
     } else {
       badge = `<span class="method-badge ${s.method === 'GET' ? 'badge-get' : 'badge-post'}">${s.method}</span>`;
     }
+    const pkgDot = s.packages_ready === false
+      ? '<span title="Dependências não instaladas" style="width:6px;height:6px;border-radius:50%;background:var(--yellow);display:inline-block;margin-left:2px;flex-shrink:0;"></span>'
+      : '';
     return `<div class="script-item ${currentId === id ? 'active' : ''}" onclick="selectScript('${id}')">
-      <div class="script-item-name">${esc(s.name)}</div>
+      <div class="script-item-name" style="display:flex;align-items:center;gap:5px;">${esc(s.name)}${pkgDot}</div>
       <div class="script-item-meta">${badge}<span class="script-item-desc">${esc(s.description||'—')}</span></div>
     </div>`;
   }).join('');
@@ -786,6 +790,20 @@ async function saveScript() {
     renderTokenSection(updated);
     renderWebhookUrl(updated);
     setStatus('Salvo!', 'ok');
+
+    // Pré-instala dependências em background após salvar
+    setStatus('Instalando dependências...', 'installing');
+    try {
+      const inst = await API('POST', `/api/scripts/${currentId}/install`);
+      scripts[currentId].packages_ready = inst.ok;
+      if (inst.ok) {
+        setStatus(inst.installed.length ? `Salvo! Deps instaladas: ${inst.installed.join(', ')}` : 'Salvo!', 'ok');
+      } else {
+        setStatus('Salvo, mas erro ao instalar deps: ' + inst.error, 'err');
+      }
+    } catch(e) {
+      setStatus('Salvo! (erro ao pré-instalar deps)', 'err');
+    }
   } catch(e) {
     setStatus('Erro: ' + e.message, 'err');
   }
