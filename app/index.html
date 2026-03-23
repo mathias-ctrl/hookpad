@@ -163,7 +163,10 @@ textarea.field-input { resize: vertical; min-height: 60px; }
 .history-list { flex: 1; overflow-y: auto; }
 .history-empty { padding: 40px; text-align: center; color: var(--text2); font-size: 13px; }
 .run-item { padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .1s; display: flex; align-items: flex-start; gap: 12px; }
-.run-item:hover { background: var(--bg1); }
+.run-item:hover { background: var(--bg2); }
+.run-item .run-chevron { font-size:10px; color:var(--text2); margin-left:auto; transition:transform .2s; flex-shrink:0; padding-top:2px; }
+.run-detail.show + .run-item .run-chevron,
+.run-item.expanded .run-chevron { transform: rotate(90deg); }
 .run-status { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
 .run-ok   { background: var(--green); }
 .run-fail { background: var(--red); }
@@ -260,7 +263,6 @@ textarea.field-input { resize: vertical; min-height: 60px; }
     <div class="topbar-spacer"></div>
     <div class="topbar-nav">
       <button class="topbar-nav-btn active" id="nav-scripts" onclick="showPage('scripts')">Scripts</button>
-      <button class="topbar-nav-btn" id="nav-history" onclick="showPage('history')">Histórico</button>
     </div>
     <button class="topbar-settings" onclick="openSettings()" title="Configurações">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -430,7 +432,7 @@ textarea.field-input { resize: vertical; min-height: 60px; }
             <div class="test-pane">
               <div class="pane-header">
                 Params / Body (JSON)
-                <span class="pane-header-hint" id="fill-params-hint" onclick="renderTestParamsFromCode(codeEditor.getValue(), true)" title="Gerar campos a partir do código">↙ Auto-preencher</span>
+    
               </div>
               <div class="pane-body">
                 <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
@@ -563,17 +565,7 @@ curl -X POST "URL" \
       </div>
     </div>
 
-    <!-- History page (global) -->
-    <div class="page" id="page-history">
-      <div class="history-page-header">
-        <h2>Histórico global</h2>
-        <div style="flex:1"></div>
-        <button class="btn-sm danger" onclick="clearAllHistory()">Limpar tudo</button>
-      </div>
-      <div class="history-list" id="global-history-list" style="flex:1;overflow-y:auto;">
-        <div class="history-empty">Carregando...</div>
-      </div>
-    </div>
+    <!-- Histórico global removido -->
 
   </div>
 </div>
@@ -788,7 +780,6 @@ async function init() {
     BASE_URL = window.location.origin;
   }
   await loadScripts();
-  await loadGlobalHistory();
   loadSettingsData();
 }
 
@@ -854,11 +845,13 @@ function selectScript(id) {
   _sigCache = { id: currentId, code: null, params: [] }; // invalida cache
   renderWebhookUrl(s);
   renderUsageExample(s);
-  renderTestParamsFromCode(s.code || '');
+  renderTestParamsFromCode(s.code || '', true); // force=true ao abrir script
 
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('editor-panel').style.display = 'flex';
   switchTab('code');
+  // Carrega histórico em background ao abrir script
+  loadScriptHistory();
 }
 
 // ─── Token rendering ─────────────────────────────────────────────────────────
@@ -1021,11 +1014,12 @@ function switchTab(tab) {
 }
 
 function showPage(page) {
-  ['scripts','history'].forEach(p => {
-    document.getElementById(`page-${p}`).classList.toggle('show', p === page);
-    document.getElementById(`nav-${p}`).classList.toggle('active', p === page);
+  ['scripts'].forEach(p => {
+    const el = document.getElementById('page-' + p);
+    const nav = document.getElementById('nav-' + p);
+    if (el) el.classList.toggle('show', p === page);
+    if (nav) nav.classList.toggle('active', p === page);
   });
-  if (page === 'history') loadGlobalHistory();
 }
 
 // ─── Save ────────────────────────────────────────────────────────────────────
@@ -1208,33 +1202,40 @@ function renderRunList(container, runs, showScript) {
   }
   container.innerHTML = runs.map((r, i) => {
     const preview = (r.stdout || r.stderr || '').replace(/\n/g, ' ').slice(0, 80);
-    const scriptLabel = showScript && r.script_name ? `<span style="color:var(--accent);font-size:11px;">${esc(r.script_name)}</span>` : '';
-    return `
-      <div class="run-item" onclick="toggleRun('${r.id}', ${i})">
-        <div class="run-status ${r.success ? 'run-ok' : 'run-fail'}"></div>
-        <div class="run-body">
-          <div class="run-top">
-            ${scriptLabel}
-            <span class="run-time">${fmtTime(r.timestamp)}</span>
-            <span class="run-trigger trig-${r.triggered_by||'webhook'}">${r.triggered_by||'webhook'}</span>
-            <span class="run-duration">${r.duration_ms}ms</span>
-          </div>
-          <div class="run-preview">${esc(preview) || '(sem output)'}</div>
-        </div>
-      </div>
-      <div class="run-detail" id="run-detail-${r.id}">
-        ${r.stdout ? `<div class="run-detail-label">stdout</div><pre>${esc(r.stdout)}</pre>` : ''}
-        ${r.stderr ? `<div class="run-detail-label">stderr</div><pre style="color:var(--red)">${esc(r.stderr)}</pre>` : ''}
-        ${r.installed_packages?.length ? `<div class="run-detail-label">pacotes instalados</div><pre style="color:var(--purple)">${r.installed_packages.join(', ')}</pre>` : ''}
-        ${r.params && Object.keys(r.params).length ? `<div class="run-detail-label">params</div><pre>${esc(JSON.stringify(r.params, null, 2))}</pre>` : ''}
-      </div>
-    `;
+    const scriptLabel = showScript && r.script_name
+      ? '<span style="color:var(--accent);font-size:11px;">' + esc(r.script_name) + '</span>' : '';
+    const statusDot = '<div class="run-status ' + (r.success ? 'run-ok' : 'run-fail') + '" style="margin-top:4px;flex-shrink:0;"></div>';
+    const chevron = '<svg class="run-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return '<div class="run-item" id="run-item-' + r.id + '" onclick="toggleRun('' + r.id + '')">'
+      + statusDot
+      + '<div class="run-body" style="flex:1;min-width:0;">'
+      + '  <div class="run-top">'
+      + '    ' + scriptLabel
+      + '    <span class="run-time">' + fmtTime(r.timestamp) + '</span>'
+      + '    <span class="run-trigger trig-' + (r.triggered_by||'webhook') + '">' + (r.triggered_by||'webhook') + '</span>'
+      + '    <span class="run-duration">' + r.duration_ms + 'ms</span>'
+      + '  </div>'
+      + '  <div class="run-preview">' + (esc(preview) || '<span style="color:var(--text2);">(sem output)</span>') + '</div>'
+      + '</div>'
+      + chevron
+      + '</div>'
+      + '<div class="run-detail" id="run-detail-' + r.id + '">'
+      + (r.stdout ? '<div class="run-detail-label">stdout</div><pre>' + esc(r.stdout) + '</pre>' : '')
+      + (r.stderr ? '<div class="run-detail-label">stderr</div><pre style="color:var(--red)">' + esc(r.stderr) + '</pre>' : '')
+      + (r.installed_packages && r.installed_packages.length ? '<div class="run-detail-label">pacotes instalados</div><pre style="color:var(--purple)">' + r.installed_packages.join(', ') + '</pre>' : '')
+      + (r.params && Object.keys(r.params).length ? '<div class="run-detail-label">params</div><pre>' + esc(JSON.stringify(r.params, null, 2)) + '</pre>' : '')
+      + '</div>';
   }).join('');
 }
 
-function toggleRun(id, idx) {
-  const el = document.getElementById(`run-detail-${id}`);
-  if (el) el.classList.toggle('show');
+function toggleRun(id) {
+  const detail = document.getElementById('run-detail-' + id);
+  const item = document.getElementById('run-item-' + id);
+  if (!detail) return;
+  const isOpen = detail.classList.toggle('show');
+  // Rotaciona chevron
+  const chevron = item && item.querySelector('.run-chevron');
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(90deg)' : '';
 }
 
 async function clearScriptHistory() {

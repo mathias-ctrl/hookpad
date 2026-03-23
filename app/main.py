@@ -34,6 +34,7 @@ ADMIN_TOKEN  = os.getenv("ADMIN_TOKEN", "admin-mude-isso")
 BASE_URL     = os.getenv("BASE_URL", "http://localhost:8000")
 TIMEOUT      = int(os.getenv("EXEC_TIMEOUT", "30"))
 HISTORY_DIR  = DATA_DIR / "history"
+VENV_TTL_DAYS = int(os.getenv("VENV_TTL_DAYS", "7"))
 SCRIPTS_FILE_LEGACY = DATA_DIR / "scripts.json"
 
 # Sandbox limits
@@ -66,12 +67,61 @@ def start_scheduler():
     scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
     scheduler_thread.start()
 
+def purge_stale_packages(sid: str, code: str):
+    """
+    Desinstala pacotes do venv de um script que não estão mais no código.
+    Mantém o venv, só remove os pacotes extras.
+    """
+    try:
+        python_bin = get_venv_python(sid)
+        if not python_bin.exists():
+            return
+        # Pacotes que o código atual precisa
+        needed = set(get_pip_name(m) for m in extract_imports(code))
+        # Pacotes instalados no venv (excluindo pip, setuptools, etc.)
+        result = subprocess.run(
+            [str(python_bin), "-m", "pip", "list", "--format=freeze",
+             "--exclude=pip", "--exclude=setuptools", "--exclude=wheel",
+             "--exclude=pkg_resources"],
+            capture_output=True, text=True, timeout=30
+        )
+        installed = set()
+        for line in result.stdout.splitlines():
+            pkg = line.split("==")[0].strip()
+            if pkg:
+                installed.add(pkg)
+        # Pacotes a remover: instalados mas não necessários
+        to_remove = installed - needed
+        if to_remove:
+            subprocess.run(
+                [str(python_bin), "-m", "pip", "uninstall", "-y"] + list(to_remove),
+                capture_output=True, text=True, timeout=60
+            )
+    except Exception:
+        pass
+
 def scheduler_loop():
     import time
+    last_cleanup = None
     while scheduler_running:
         try:
             scripts = load_scripts()
             now = utcnow()
+
+            # Limpeza de pacotes ociosos — roda uma vez por dia
+            if last_cleanup is None or (now - last_cleanup).total_seconds() > 86400:
+                for sid, s in scripts.items():
+                    runs = load_runs(sid)
+                    if not runs:
+                        continue
+                    last_exec = runs[0].get("timestamp")
+                    if not last_exec:
+                        continue
+                    last_dt = datetime.fromisoformat(last_exec)
+                    if (now - last_dt).total_seconds() > VENV_TTL_DAYS * 86400:
+                        purge_stale_packages(sid, s.get("code", ""))
+                last_cleanup = now
+
             for sid, s in scripts.items():
                 if not s.get("enabled", True):
                     continue
@@ -156,7 +206,7 @@ def save_run(script_id: str, result: dict):
     days = settings.get("history_days", 30)
     cutoff = utcnow() - timedelta(days=days)
     runs = [r for r in runs if datetime.fromisoformat(r["timestamp"]) > cutoff]
-    runs = runs[:1000]
+    runs = runs[:500]
     history_file.write_text(json.dumps(runs, indent=2, ensure_ascii=False))
 
 def load_runs(script_id: str) -> list:
