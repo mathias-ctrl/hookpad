@@ -883,6 +883,16 @@ async def _execute_hook(script_id: str, request: Request):
         raw_bytes = base64.b64decode(result["binary_output"])
         return Response(content=raw_bytes, media_type="application/octet-stream")
 
+    # Se o script tem def main() e retornou algo via stdout JSON, devolve direto
+    # em vez de embrulhar no objeto {id, success, stdout, ...}
+    stdout = (result.get("stdout") or "").strip()
+    if result["success"] and stdout:
+        try:
+            parsed = json.loads(stdout)
+            return JSONResponse(parsed, status_code=200)
+        except Exception:
+            pass
+
     return JSONResponse(result, status_code=200 if result["success"] else 500)
 
 @app.get("/hook/{script_id}")
