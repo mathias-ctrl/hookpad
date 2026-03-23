@@ -231,7 +231,28 @@ textarea.field-input { resize: vertical; min-height: 60px; }
 </style>
 </head>
 <body>
-<div class="app">
+<!-- Login Screen -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg0);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="text-align:center;margin-bottom:8px;">
+    <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);">HookPad<span style="color:var(--text2);">.py</span></div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px;">Python Webhook Runner</div>
+  </div>
+  <div style="background:var(--bg1);border:1px solid var(--line);border-radius:10px;padding:28px 32px;width:320px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:12px;color:var(--text2);text-align:center;">Admin Token</div>
+    <input id="login-input" type="password" placeholder="Digite seu token..."
+      style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:10px 14px;color:var(--text0);font-family:var(--mono);font-size:13px;outline:none;width:100%;"
+      onkeydown="if(event.key==='Enter')doLogin()"
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--line)'">
+    <button id="login-btn" onclick="doLogin()"
+      style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:background .15s;"
+      onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">
+      Entrar
+    </button>
+    <div id="login-error" style="font-size:12px;color:var(--red);text-align:center;min-height:16px;"></div>
+  </div>
+</div>
+
+<div class="app" id="app">
 
   <!-- Topbar -->
   <div class="topbar">
@@ -276,6 +297,7 @@ textarea.field-input { resize: vertical; min-height: 60px; }
           <div class="tab"        id="tab-config"  onclick="switchTab('config')">Configuração</div>
           <div class="tab"        id="tab-test"    onclick="switchTab('test')">Testar</div>
           <div class="tab"        id="tab-history" onclick="switchTab('history')">Histórico</div>
+          <div class="tab"        id="tab-howto"   onclick="switchTab('howto')">Como usar</div>
           <div class="tab-spacer"></div>
         </div>
 
@@ -408,7 +430,7 @@ textarea.field-input { resize: vertical; min-height: 60px; }
             <div class="test-pane">
               <div class="pane-header">
                 Params / Body (JSON)
-                <span class="pane-header-hint" id="fill-params-hint" onclick="fillDetectedParams()" title="Preencher com params detectados no código">↙ Auto-preencher</span>
+                <span class="pane-header-hint" id="fill-params-hint" onclick="renderTestParamsFromCode(codeEditor.getValue(), true)" title="Gerar campos a partir do código">↙ Auto-preencher</span>
               </div>
               <div class="pane-body">
                 <div id="test-input-editor" style="height:100%;min-height:200px;"></div>
@@ -433,6 +455,94 @@ textarea.field-input { resize: vertical; min-height: 60px; }
           </div>
           <div class="history-list" id="script-history-list">
             <div class="history-empty">Nenhuma execução ainda</div>
+          </div>
+        </div>
+
+        <!-- How To Tab -->
+        <div class="config-tab" id="pane-howto" style="display:none;">
+          <div style="max-width:640px;">
+            <h3 style="font-size:14px;font-weight:600;color:var(--text0);margin-bottom:16px;">Como usar o HookPad</h3>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Estrutura do script</div>
+              <p style="font-size:12px;color:var(--text1);line-height:1.7;margin-bottom:10px;">Escreva uma função <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">def main()</code> com os parâmetros que desejar. O HookPad detecta automaticamente os tipos e gera os campos de teste e o exemplo curl.</p>
+              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;overflow-x:auto;">def main(
+    nome: str,
+    numero: int = 42,
+    dados: dict = {},
+    arquivo: bytes = bytes(0),
+):
+    print(f"Olá {nome}, número: {numero}")
+    return {"ok": True, "nome": nome}</pre>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Tipos suportados</div>
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">str</td>
+                  <td style="padding:6px 10px;color:var(--text1);">Texto simples</td>
+                  <td style="padding:6px 10px;color:var(--text2);">"valor"</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">int / float</td>
+                  <td style="padding:6px 10px;color:var(--text1);">Número</td>
+                  <td style="padding:6px 10px;color:var(--text2);">42</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">bool</td>
+                  <td style="padding:6px 10px;color:var(--text1);">Booleano</td>
+                  <td style="padding:6px 10px;color:var(--text2);">true / false</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">dict</td>
+                  <td style="padding:6px 10px;color:var(--text1);">JSON object</td>
+                  <td style="padding:6px 10px;color:var(--text2);">{"chave": "valor"}</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--line);">
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">list</td>
+                  <td style="padding:6px 10px;color:var(--text1);">JSON array</td>
+                  <td style="padding:6px 10px;color:var(--text2);">[1, 2, 3]</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 10px;font-family:var(--mono);color:var(--purple);">bytes</td>
+                  <td style="padding:6px 10px;color:var(--text1);">Arquivo binário</td>
+                  <td style="padding:6px 10px;color:var(--text2);">base64 ou multipart</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Retorno</div>
+              <p style="font-size:12px;color:var(--text1);line-height:1.7;margin-bottom:8px;">O valor retornado por <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">return</code> vira o body da resposta HTTP:</p>
+              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;">return {"status": "ok"}   # → JSON
+return b"\x89PNG..."      # → application/octet-stream (binário)
+print("qualquer coisa")   # → vai no stdout da resposta</pre>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Enviar arquivo binário</div>
+              <pre style="background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text1);line-height:1.7;overflow-x:auto;"># Via multipart (recomendado para arquivos)
+curl -X POST "URL" \
+  -H "X-Token: TOKEN" \
+  -F "arquivo=@meu.pdf"
+
+# Via JSON com base64
+curl -X POST "URL" \
+  -H "X-Token: TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"arquivo\": \"$(base64 -w0 meu.pdf)\"}"
+
+# Body binário puro (injeta como param \"file\")
+curl -X POST "URL" \
+  -H "X-Token: TOKEN" \
+  --data-binary @meu.pdf</pre>
+            </div>
+
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Dependências</div>
+              <p style="font-size:12px;color:var(--text1);line-height:1.7;">Apenas dê <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);">import</code> no topo do script. O HookPad instala automaticamente ao salvar. Cada script tem seu próprio ambiente virtual isolado.</p>
+            </div>
           </div>
         </div>
 
@@ -509,7 +619,7 @@ textarea.field-input { resize: vertical; min-height: 60px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
-let ADMIN_TOKEN = localStorage.getItem('admin_token') || promptAdminToken();
+let ADMIN_TOKEN = localStorage.getItem('admin_token') || '';
 let BASE_URL = '';
 let scripts = {};
 let currentId = null;
@@ -522,11 +632,42 @@ let selectedExpiry = 'never';
 let selectedReExpiry = 'never';
 let selectedHistoryDays = 30;
 let expandedRuns = new Set();
+let _codeChangeTimer = null;
 
-function promptAdminToken() {
-  const t = prompt('Admin token:') || 'admin-mude-isso';
-  localStorage.setItem('admin_token', t);
-  return t;
+// ─── Login ───────────────────────────────────────────────────────────────────
+function showLogin(msg) {
+  document.getElementById('app').style.display = 'none';
+  const el = document.getElementById('login-screen');
+  el.style.display = 'flex';
+  if (msg) document.getElementById('login-error').textContent = msg;
+}
+function hideLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+}
+async function doLogin() {
+  const t = document.getElementById('login-input').value.trim();
+  if (!t) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: t })
+    });
+    if (r.ok) {
+      ADMIN_TOKEN = t;
+      localStorage.setItem('admin_token', t);
+      hideLogin();
+      init();
+    } else {
+      document.getElementById('login-error').textContent = 'Token inválido';
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Erro de conexão';
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -538,7 +679,7 @@ const API = async (method, path, body) => {
   });
   if (!r.ok) {
     const e = await r.json().catch(() => ({ detail: r.statusText }));
-    if (r.status === 401) { localStorage.removeItem('admin_token'); location.reload(); }
+    if (r.status === 401) { localStorage.removeItem('admin_token'); ADMIN_TOKEN = ''; showLogin('Sessão expirada ou token inválido'); return; }
     throw new Error(e.detail || r.statusText);
   }
   return r.json();
@@ -595,6 +736,19 @@ require(['vs/editor/editor.main'], () => {
     value: '{\n  \n}',
   });
 
+  // Auto-render params e curl ao editar o código
+  codeEditor.onDidChangeModelContent(() => {
+    clearTimeout(_codeChangeTimer);
+    _codeChangeTimer = setTimeout(() => {
+      if (currentId) {
+        renderTestParamsFromCode(codeEditor.getValue());
+        renderUsageExample(scripts[currentId]);
+      }
+    }, 600);
+  });
+
+  // Mostra login imediatamente se não há token
+  if (!ADMIN_TOKEN) showLogin();
   init();
 });
 
@@ -614,6 +768,18 @@ print(f"Número dobrado: {int(numero) * 2}")
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
+  // Se não tem token salvo, mostra login
+  if (!ADMIN_TOKEN) { showLogin(); return; }
+  // Valida token antes de carregar
+  try {
+    const r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: ADMIN_TOKEN })
+    });
+    if (!r.ok) { showLogin('Token inválido ou expirado'); return; }
+  } catch(e) {}
+  hideLogin();
   try {
     const r = await fetch('/api/base-url');
     const data = await r.json();
@@ -686,6 +852,8 @@ function selectScript(id) {
 
   renderTokenSection(s);
   renderWebhookUrl(s);
+  renderUsageExample(s);
+  renderTestParamsFromCode(s.code || '');
 
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('editor-panel').style.display = 'flex';
@@ -735,28 +903,92 @@ function renderWebhookUrl(s) {
   }
 }
 
-function updateUsageExample(s) {
+function renderUsageExample(s) {
+  if (!s || !s.token) return;
   const url = `${BASE_URL}/hook/${s.id}`;
   const token = s.token;
+  // detecta params do def main() no código atual
+  const code = codeEditor ? codeEditor.getValue() : (s.code || '');
+  const mainParams = parseMainSignature(code);
   let ex = '';
   if (s.method === 'GET') {
-    ex = `curl "${url}?token=${token}&param=valor"`;
+    const qp = mainParams.length
+      ? mainParams.map(p => `${p.name}=${p.type === 'int' ? '42' : p.type === 'bool' ? 'true' : 'valor'}`).join('&')
+      : 'param=valor';
+    ex = `curl "${url}?token=${token}&${qp}"`;
   } else {
-    ex = `curl -X POST "${url}" \\\n     -H "Content-Type: application/json" \\\n     -H "X-Token: ${token}" \\\n     -d '{"param": "valor"}'`;
+    const hasFile = mainParams.some(p => p.type === 'file');
+    if (hasFile) {
+      const fields = mainParams.map(p =>
+        p.type === 'file' ? `  -F "${p.name}=@arquivo.bin"` : `  -F "${p.name}=valor"`
+      ).join(' \\
+');
+      ex = `curl -X POST "${url}" \\
+  -H "X-Token: ${token}" \\
+${fields}`;
+    } else {
+      const body = mainParams.length
+        ? '{' + mainParams.map(p => {
+            if (p.type === 'int') return `"${p.name}": 42`;
+            if (p.type === 'bool') return `"${p.name}": true`;
+            if (p.type === 'dict') return `"${p.name}": {}`;
+            if (p.type === 'list') return `"${p.name}": []`;
+            return `"${p.name}": "valor"`;
+          }).join(', ') + '}'
+        : '{"param": "valor"}';
+      ex = `curl -X POST "${url}" \\
+     -H "Content-Type: application/json" \\
+     -H "X-Token: ${token}" \\
+     -d '${body}'`;
+    }
   }
   document.getElementById('usage-example').textContent = ex;
 }
 
+// Alias para manter compatibilidade
+function updateUsageExample(s) { renderUsageExample(s); }
+
+// Parsa def main() direto no JS (espelho do backend)
+function parseMainSignature(code) {
+  const params = [];
+  const match = code.match(/def main\(([\s\S]*?)\):/);
+  if (!match) return params;
+  const sig = match[1].replace(/\n/g, ' ').replace(/#[^,)\n]*/g, '');
+  const parts = sig.split(',').map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    const [decl] = part.split('=');
+    const nameTypePart = decl.trim();
+    let name = nameTypePart, type = 'str';
+    if (nameTypePart.includes(':')) {
+      [name] = nameTypePart.split(':');
+      name = name.trim();
+      const ann = nameTypePart.split(':')[1].trim();
+      if (ann === 'bytes' || ann === 'bytes | None') type = 'file';
+      else if (ann === 'int') type = 'int';
+      else if (ann === 'float') type = 'float';
+      else if (ann === 'bool') type = 'bool';
+      else if (ann === 'dict' || ann.startsWith('Dict')) type = 'dict';
+      else if (ann === 'list' || ann.startsWith('List')) type = 'list';
+    }
+    if (name && name !== 'self') params.push({ name, type });
+  }
+  return params;
+}
+
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  ['code','config','test','history'].forEach(t => {
-    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  ['code','config','test','history','howto'].forEach(t => {
+    const el = document.getElementById(`tab-${t}`);
+    if (el) el.classList.toggle('active', t === tab);
   });
   document.getElementById('pane-code').style.display = tab === 'code' ? 'flex' : 'none';
   document.getElementById('pane-config').classList.toggle('show', tab === 'config');
   document.getElementById('pane-test').classList.toggle('show', tab === 'test');
   document.getElementById('pane-history').classList.toggle('show', tab === 'history');
+  const howtoEl = document.getElementById('pane-howto');
+  if (howtoEl) howtoEl.style.display = tab === 'howto' ? 'block' : 'none';
   if (tab === 'history') loadScriptHistory();
+  if (tab === 'test') renderTestParamsFromCode(codeEditor.getValue());
   codeEditor && codeEditor.layout();
   testEditor && testEditor.layout();
 }
@@ -789,6 +1021,7 @@ async function saveScript() {
     renderList();
     renderTokenSection(updated);
     renderWebhookUrl(updated);
+    renderUsageExample(updated);
     setStatus('Salvo!', 'ok');
 
     // Pré-instala dependências em background após salvar
@@ -841,15 +1074,41 @@ async function runTest() {
 }
 
 // ─── Auto-fill params ─────────────────────────────────────────────────────────
-function fillDetectedParams() {
-  if (!currentId) return;
-  const s = scripts[currentId];
-  const detected = s.detected_params || {};
-  if (!Object.keys(detected).length) {
-    setStatus('Nenhum param detectado', '');
+function fillDetectedParams() { renderTestParamsFromCode(codeEditor.getValue(), true); }
+
+function renderTestParamsFromCode(code, force) {
+  if (!testEditor) return;
+  const mainParams = parseMainSignature(code);
+  if (!mainParams.length) {
+    // fallback: __params__.get()
+    const s = currentId && scripts[currentId];
+    const detected = s ? (s.detected_params || {}) : {};
+    if (force && Object.keys(detected).length) {
+      testEditor.setValue(JSON.stringify(detected, null, 2));
+    }
     return;
   }
-  testEditor.setValue(JSON.stringify(detected, null, 2));
+  // Só auto-preenche se o editor estiver vazio ou se for chamada explícita
+  const current = testEditor.getValue().trim();
+  const isEmpty = current === '' || current === '{\n  \n}' || current === '{}';
+  if (!isEmpty && !force) return;
+  const obj = {};
+  for (const p of mainParams) {
+    if (p.type === 'file') {
+      obj[p.name] = '(base64 ou use multipart/form-data)';
+    } else if (p.type === 'int') {
+      obj[p.name] = 42;
+    } else if (p.type === 'bool') {
+      obj[p.name] = true;
+    } else if (p.type === 'dict') {
+      obj[p.name] = {};
+    } else if (p.type === 'list') {
+      obj[p.name] = [];
+    } else {
+      obj[p.name] = 'valor';
+    }
+  }
+  testEditor.setValue(JSON.stringify(obj, null, 2));
 }
 
 // ─── Token actions ────────────────────────────────────────────────────────────
@@ -1120,6 +1379,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !document.getElementById('new-modal').classList.contains('hidden')) createScript();
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveScript(); }
 });
+</script>
+<script>
+// Mostra login antes do Monaco carregar (evita flash)
+if (!localStorage.getItem('admin_token')) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const ls = document.getElementById('login-screen');
+    const app = document.getElementById('app');
+    if (ls) ls.style.display = 'flex';
+    if (app) app.style.display = 'none';
+  });
+}
 </script>
 </body>
 </html>

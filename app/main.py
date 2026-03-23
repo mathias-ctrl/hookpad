@@ -1,7 +1,5 @@
 """
-HookPad v2 — Python Script Webhook Runner
-Fixes: thread safety, async executor, pre-install, param injection,
-       per-file scripts, schedule validation, utcnow, history pagination
+HookPad — Python Script Webhook Runner
 """
 
 import os
@@ -16,14 +14,15 @@ import traceback
 import threading
 import asyncio
 import re
+import resource
 from functools import partial
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException, Request, Header, Depends
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, Header, Depends, UploadFile, File
+from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 
@@ -35,9 +34,11 @@ ADMIN_TOKEN  = os.getenv("ADMIN_TOKEN", "admin-mude-isso")
 BASE_URL     = os.getenv("BASE_URL", "http://localhost:8000")
 TIMEOUT      = int(os.getenv("EXEC_TIMEOUT", "30"))
 HISTORY_DIR  = DATA_DIR / "history"
-
-# Arquivo legado (será migrado automaticamente)
 SCRIPTS_FILE_LEGACY = DATA_DIR / "scripts.json"
+
+# Sandbox limits
+MEM_LIMIT_MB  = int(os.getenv("SANDBOX_MEM_MB", "512"))
+CPU_LIMIT_SEC = int(os.getenv("SANDBOX_CPU_SEC", "60"))
 
 for d in [DATA_DIR, VENV_DIR, SCRIPTS_DIR, HISTORY_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -53,7 +54,6 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ─── Helpers de tempo ────────────────────────────────────────────────────────
 def utcnow() -> datetime:
-    """Retorna datetime UTC naive. Compatível com isoformat() em todo o código."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 # ─── Scheduler ───────────────────────────────────────────────────────────────
@@ -104,7 +104,6 @@ def schedule_to_minutes(schedule: str) -> Optional[int]:
 
 # ─── Storage ─────────────────────────────────────────────────────────────────
 def _migrate_legacy():
-    """Migra scripts.json antigo para arquivos individuais."""
     if not SCRIPTS_FILE_LEGACY.exists():
         return
     try:
@@ -191,8 +190,14 @@ def clear_history(script_id: Optional[str] = None):
             f.unlink()
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
-def require_admin(x_admin_token: str = Header(...)):
-    if x_admin_token != ADMIN_TOKEN:
+def require_admin(request: Request):
+    """Aceita token via header X-Admin-Token ou query param admin_token."""
+    token = (
+        request.headers.get("x-admin-token")
+        or request.headers.get("X-Admin-Token")
+        or request.query_params.get("admin_token")
+    )
+    if not token or token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Token admin inválido")
 
 def check_token_valid(script: dict, provided: str) -> bool:
@@ -269,6 +274,7 @@ IMPORT_MAP = {
     "psycopg2": "psycopg2-binary", "magic": "python-magic",
     "serial": "pyserial", "usb": "pyusb", "gi": "PyGObject",
     "pydub": "pydub", "boto3": "boto3", "google": "google-cloud",
+    "pymupdf": "PyMuPDF", "fitz": "PyMuPDF",
 }
 
 def extract_imports(code: str) -> list:
@@ -285,6 +291,70 @@ def extract_imports(code: str) -> list:
             if node.module:
                 modules.add(node.module.split(".")[0])
     return [m for m in modules if m not in STDLIB and not m.startswith("_")]
+
+def parse_main_signature(code: str) -> list:
+    """
+    Extrai parâmetros da assinatura de def main(...) no código.
+    Retorna lista de {name, type, default, has_default}
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "main":
+            params = []
+            args = node.args
+            # calcula defaults (alinhados pelo final)
+            defaults = args.defaults
+            num_args = len(args.args)
+            num_defaults = len(defaults)
+            offset = num_args - num_defaults
+            for i, arg in enumerate(args.args):
+                if arg.arg == "self":
+                    continue
+                param = {"name": arg.arg, "type": "str", "default": None, "has_default": False}
+                # tipo da anotação
+                if arg.annotation:
+                    ann = ast.unparse(arg.annotation)
+                    if ann in ("bytes", "bytes | None"):
+                        param["type"] = "file"
+                    elif ann in ("int",):
+                        param["type"] = "int"
+                    elif ann in ("float",):
+                        param["type"] = "float"
+                    elif ann in ("bool",):
+                        param["type"] = "bool"
+                    elif ann in ("dict", "Dict"):
+                        param["type"] = "dict"
+                    elif ann in ("list", "List"):
+                        param["type"] = "list"
+                    else:
+                        param["type"] = "str"
+                # default
+                di = i - offset
+                if di >= 0 and di < num_defaults:
+                    param["has_default"] = True
+                    d = defaults[di]
+                    if isinstance(d, ast.Constant):
+                        param["default"] = d.value
+                        if isinstance(d.value, bool):
+                            param["type"] = "bool"
+                        elif isinstance(d.value, int):
+                            param["type"] = "int"
+                        elif isinstance(d.value, float):
+                            param["type"] = "float"
+                        elif isinstance(d.value, bytes):
+                            param["type"] = "file"
+                    elif isinstance(d, ast.Dict):
+                        param["type"] = "dict"
+                        param["default"] = {}
+                    elif isinstance(d, ast.List):
+                        param["type"] = "list"
+                        param["default"] = []
+                params.append(param)
+            return params
+    return []
 
 def detect_params(code: str) -> dict:
     params = {}
@@ -332,11 +402,24 @@ def install_packages(python_bin: Path, packages: list) -> tuple:
     )
     return pip_names, result.stderr if result.returncode != 0 else ""
 
+def _sandbox_preexec():
+    """Aplica limites de recursos ao processo filho (Linux only)."""
+    try:
+        mem_bytes = MEM_LIMIT_MB * 1024 * 1024
+        resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
+        resource.setrlimit(resource.RLIMIT_CPU, (CPU_LIMIT_SEC, CPU_LIMIT_SEC))
+        # Limita número de processos filhos
+        resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
+    except Exception:
+        pass
+
 def run_script(script_id: str, code: str, params: dict, triggered_by: str = "webhook") -> dict:
-    import tempfile
+    import tempfile, base64 as b64mod
     start = utcnow()
     installed = []
     install_log = ""
+    binary_params = {}  # params que são bytes (base64 decodificado)
+
     try:
         python_bin = ensure_venv(script_id)
         imports = extract_imports(code)
@@ -345,34 +428,79 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             installed = pkgs
             install_log = err
 
-        # FIX 4: json.dumps(k) escapa corretamente qualquer chave
-        inject = f"__params__ = {json.dumps(params)}\n"
+        # Detecta params binários (base64) e separa pra injeção correta
+        clean_params = {}
         for k, v in params.items():
+            if isinstance(v, str) and len(v) > 20:
+                try:
+                    decoded = b64mod.b64decode(v)
+                    binary_params[k] = True
+                    clean_params[k] = v  # mantém base64, converte no inject
+                    continue
+                except Exception:
+                    pass
+            clean_params[k] = v
+
+        # Injeta params — params binários viram bytes
+        inject = "import base64 as __b64\n"
+        inject += f"__params__ = {json.dumps(clean_params)}\n"
+        for k, v in clean_params.items():
             safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', k)
-            inject += f"{safe_key} = __params__.get({json.dumps(k)})\n"
+            if k in binary_params:
+                inject += f"{safe_key} = __b64.b64decode(__params__.get({json.dumps(k)}))\n"
+            else:
+                inject += f"{safe_key} = __params__.get({json.dumps(k)})\n"
+
+        # Se tem def main(), chama ela e captura o retorno
+        has_main = "def main(" in code
+        if has_main:
+            sig_params = parse_main_signature(code)
+            call_args = []
+            for p in sig_params:
+                safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', p["name"])
+                call_args.append(safe_key)
+            inject += f"\n__result__ = main({', '.join(call_args)})\n"
+            inject += "import json as __json, base64 as __b64r\n"
+            inject += (
+                "if isinstance(__result__, (bytes, bytearray)):\n"
+                "    print('__BINARY__:' + __b64r.b64encode(__result__).decode())\n"
+                "elif __result__ is not None:\n"
+                "    print(__json.dumps(__result__, ensure_ascii=False, default=str))\n"
+            )
+
         full_code = inject + "\n" + code
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
             f.write(full_code)
             tmp_path = f.name
 
+        preexec = _sandbox_preexec if sys.platform != "win32" else None
         result = subprocess.run(
             [str(python_bin), tmp_path],
-            capture_output=True, text=True, timeout=TIMEOUT
+            capture_output=True, text=True, timeout=TIMEOUT,
+            preexec_fn=preexec
         )
         Path(tmp_path).unlink(missing_ok=True)
         duration = int((utcnow() - start).total_seconds() * 1000)
 
+        # Detecta se stdout é binário
+        stdout = result.stdout
+        binary_output = None
+        if stdout.startswith("__BINARY__:"):
+            binary_output = stdout[len("__BINARY__:"):].strip()
+            stdout = "[binary output]"
+
         run_result = {
             "id": str(uuid.uuid4())[:12],
             "success": result.returncode == 0,
-            "stdout": result.stdout[:50000],
+            "stdout": stdout[:50000],
             "stderr": (install_log + result.stderr)[:10000],
             "duration_ms": duration,
             "installed_packages": installed,
             "timestamp": start.isoformat(),
             "triggered_by": triggered_by,
-            "params": params,
+            "params": {k: v for k, v in params.items() if not binary_params.get(k)},
+            "binary_output": binary_output,
         }
         save_run(script_id, run_result)
         return run_result
@@ -389,6 +517,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             "timestamp": start.isoformat(),
             "triggered_by": triggered_by,
             "params": params,
+            "binary_output": None,
         }
         save_run(script_id, run_result)
         return run_result
@@ -404,6 +533,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             "timestamp": start.isoformat(),
             "triggered_by": triggered_by,
             "params": params,
+            "binary_output": None,
         }
         save_run(script_id, run_result)
         return run_result
@@ -421,12 +551,23 @@ def script_with_url(s: dict, sid: str) -> dict:
     result = dict(s)
     result["webhook_url"] = f"{BASE_URL}/hook/{sid}"
     result["detected_params"] = detect_params(s.get("code", ""))
+    result["main_params"] = parse_main_signature(s.get("code", ""))
     if result.get("token_expires_at"):
         exp = datetime.fromisoformat(result["token_expires_at"])
         result["token_expired"] = utcnow() > exp
     else:
         result["token_expired"] = False
     return result
+
+# ─── Auth endpoint ────────────────────────────────────────────────────────────
+@app.post("/api/auth")
+async def auth(request: Request):
+    """Valida o token admin e retorna ok. Usado pela tela de login."""
+    body = await request.json()
+    token = body.get("token", "")
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    return {"ok": True}
 
 # ─── Admin API — Scripts ─────────────────────────────────────────────────────
 @app.get("/api/scripts", dependencies=[Depends(require_admin)])
@@ -437,6 +578,7 @@ def list_scripts():
 @app.post("/api/scripts", dependencies=[Depends(require_admin)])
 def create_script(body: ScriptCreate):
     sid = secrets.token_hex(8)
+    token = secrets.token_urlsafe(32)  # gera token automaticamente
     data = {
         "id": sid,
         "name": body.name,
@@ -446,9 +588,9 @@ def create_script(body: ScriptCreate):
         "enabled": body.enabled,
         "trigger": body.trigger,
         "schedule_interval": body.schedule_interval,
-        "token": None,
+        "token": token,
         "token_expires_at": None,
-        "token_expiration": None,
+        "token_expiration": "never",
         "packages_ready": False,
         "created_at": utcnow().isoformat(),
         "updated_at": utcnow().isoformat(),
@@ -498,7 +640,6 @@ def delete_script(script_id: str):
 # ─── Install deps ─────────────────────────────────────────────────────────────
 @app.post("/api/scripts/{script_id}/install", dependencies=[Depends(require_admin)])
 async def install_script_deps(script_id: str):
-    """Pré-instala dependências do script. Chamar automaticamente ao salvar."""
     scripts = load_scripts()
     if script_id not in scripts:
         raise HTTPException(404, "Script não encontrado")
@@ -520,6 +661,14 @@ async def install_script_deps(script_id: str):
             save_script(script_id, scripts2[script_id])
 
     return {"installed": pkgs, "error": err, "ok": err == ""}
+
+# ─── Parse main signature ──────────────────────────────────────────────────────
+@app.get("/api/scripts/{script_id}/signature", dependencies=[Depends(require_admin)])
+def get_signature(script_id: str):
+    scripts = load_scripts()
+    if script_id not in scripts:
+        raise HTTPException(404, "Script não encontrado")
+    return {"params": parse_main_signature(scripts[script_id].get("code", ""))}
 
 # ─── Token ───────────────────────────────────────────────────────────────────
 @app.post("/api/scripts/{script_id}/generate-token", dependencies=[Depends(require_admin)])
@@ -558,15 +707,25 @@ async def test_script(script_id: str, request: Request):
         raise HTTPException(404, "Script não encontrado")
     s = scripts[script_id]
     params = {}
-    try:
-        body = await request.json()
-        if isinstance(body, dict):
-            params.update(body)
-    except Exception:
-        pass
-    params.update(dict(request.query_params))
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+        form = await request.form()
+        for k, v in form.items():
+            if hasattr(v, "read"):
+                import base64
+                data = await v.read()
+                params[k] = base64.b64encode(data).decode()
+            else:
+                params[k] = v
+    else:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                params.update(body)
+        except Exception:
+            pass
+    params.update({k: v for k, v in request.query_params.items()})
 
-    # FIX 2: thread pool para não bloquear o event loop
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
@@ -589,7 +748,6 @@ def clear_script_history(script_id: str):
 
 @app.get("/api/history", dependencies=[Depends(require_admin)])
 def get_all_history(limit: int = 50, offset: int = 0):
-    # FIX 8: paginação
     return load_all_runs(limit=limit, offset=offset)
 
 @app.delete("/api/history", dependencies=[Depends(require_admin)])
@@ -654,14 +812,32 @@ async def _execute_hook(script_id: str, request: Request):
             pass
     elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
         form = await request.form()
-        params.update(dict(form))
+        import base64
+        for k, v in form.items():
+            if hasattr(v, "read"):
+                data = await v.read()
+                params[k] = base64.b64encode(data).decode()
+            else:
+                params[k] = v
+    elif content_type in ("application/octet-stream", "application/pdf", "") :
+        # Body binário puro — injeta como param "file" em base64
+        import base64
+        raw = await request.body()
+        if raw:
+            params["file"] = base64.b64encode(raw).decode()
 
-    # FIX 2: thread pool para não bloquear o event loop
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
         partial(run_script, script_id, s["code"], params, "webhook")
     )
+
+    # Se o script retornou binário, devolve como octet-stream
+    if result.get("binary_output"):
+        import base64
+        raw_bytes = base64.b64decode(result["binary_output"])
+        return Response(content=raw_bytes, media_type="application/octet-stream")
+
     return JSONResponse(result, status_code=200 if result["success"] else 500)
 
 @app.get("/hook/{script_id}")
