@@ -851,6 +851,7 @@ function selectScript(id) {
   updateScheduleButtons();
 
   renderTokenSection(s);
+  _sigCache = { id: currentId, code: null, params: [] }; // invalida cache
   renderWebhookUrl(s);
   renderUsageExample(s);
   renderTestParamsFromCode(s.code || '');
@@ -903,53 +904,71 @@ function renderWebhookUrl(s) {
   }
 }
 
-function renderUsageExample(s) {
+async function renderUsageExample(s) {
   if (!s || !s.token) return;
-  const url = `${BASE_URL}/hook/${s.id}`;
+  const url = BASE_URL + '/hook/' + s.id;
   const token = s.token;
-  // detecta params do def main() no código atual
   const code = codeEditor ? codeEditor.getValue() : (s.code || '');
-  const mainParams = parseMainSignature(code);
+  const mainParams = await parseMainSignatureAsync(code);
   let ex = '';
   if (s.method === 'GET') {
     const qp = mainParams.length
-      ? mainParams.map(p => `${p.name}=${p.type === 'int' ? '42' : p.type === 'bool' ? 'true' : 'valor'}`).join('&')
+      ? mainParams.map(function(p) { return p.name + '=' + (p.type === 'int' ? '42' : p.type === 'bool' ? 'true' : 'valor'); }).join('&')
       : 'param=valor';
-    ex = `curl "${url}?token=${token}&${qp}"`;
+    ex = 'curl "' + url + '?token=' + token + '&' + qp + '"';
   } else {
-    const hasFile = mainParams.some(p => p.type === 'file');
+    const hasFile = mainParams.some(function(p) { return p.type === 'file'; });
     if (hasFile) {
-      const fields = mainParams.map(p =>
-        p.type === 'file' ? `  -F "${p.name}=@arquivo.bin"` : `  -F "${p.name}=valor"`
-      ).join(' \\
-');
-      ex = `curl -X POST "${url}" \\
-  -H "X-Token: ${token}" \\
-${fields}`;
+      const lines = ['curl -X POST "' + url + '" \', '  -H "X-Token: ' + token + '" \'];
+      mainParams.forEach(function(p) {
+        lines.push('  -F "' + p.name + '=' + (p.type === 'file' ? '@arquivo.bin' : 'valor') + '" \');
+      });
+      ex = lines.join('\n').replace(/ \\$/, '');
     } else {
-      const body = mainParams.length
-        ? '{' + mainParams.map(p => {
-            if (p.type === 'int') return `"${p.name}": 42`;
-            if (p.type === 'bool') return `"${p.name}": true`;
-            if (p.type === 'dict') return `"${p.name}": {}`;
-            if (p.type === 'list') return `"${p.name}": []`;
-            return `"${p.name}": "valor"`;
-          }).join(', ') + '}'
-        : '{"param": "valor"}';
-      ex = `curl -X POST "${url}" \\
-     -H "Content-Type: application/json" \\
-     -H "X-Token: ${token}" \\
-     -d '${body}'`;
+      let bodyParts = [];
+      mainParams.forEach(function(p) {
+        if (p.type === 'int') bodyParts.push('"' + p.name + '": 42');
+        else if (p.type === 'bool') bodyParts.push('"' + p.name + '": true');
+        else if (p.type === 'dict') bodyParts.push('"' + p.name + '": {}');
+        else if (p.type === 'list') bodyParts.push('"' + p.name + '": []');
+        else bodyParts.push('"' + p.name + '": "valor"');
+      });
+      const body = bodyParts.length ? '{' + bodyParts.join(', ') + '}' : '{"param": "valor"}';
+      ex = 'curl -X POST "' + url + '" \\' + '\n' +
+           '     -H "Content-Type: application/json" \\' + '\n' +
+           '     -H "X-Token: ' + token + '" \\' + '\n' +
+           "     -d '" + body + "'";
     }
   }
   document.getElementById('usage-example').textContent = ex;
-}
 
 // Alias para manter compatibilidade
 function updateUsageExample(s) { renderUsageExample(s); }
 
-// Parsa def main() direto no JS (espelho do backend)
-function parseMainSignature(code) {
+// Cache de assinatura para evitar chamadas repetidas
+let _sigCache = { id: null, code: null, params: [] };
+
+// Parsa def main() via backend (usa ast do Python — muito mais robusto que regex)
+async function parseMainSignatureAsync(code) {
+  if (!currentId) return parseMainSignatureFallback(code);
+  if (_sigCache.id === currentId && _sigCache.code === code) return _sigCache.params;
+  try {
+    const r = await API('GET', '/api/scripts/' + currentId + '/signature');
+    const params = (r.params || []).map(p => ({
+      name: p.name,
+      type: p.type,
+      default: p.default,
+      has_default: p.has_default
+    }));
+    _sigCache = { id: currentId, code, params };
+    return params;
+  } catch(e) {
+    return parseMainSignatureFallback(code);
+  }
+}
+
+// Fallback regex simples caso o backend não responda
+function parseMainSignatureFallback(code) {
   const params = [];
   const match = code.match(/def main\(([\s\S]*?)\):/);
   if (!match) return params;
@@ -960,8 +979,7 @@ function parseMainSignature(code) {
     const nameTypePart = decl.trim();
     let name = nameTypePart, type = 'str';
     if (nameTypePart.includes(':')) {
-      [name] = nameTypePart.split(':');
-      name = name.trim();
+      name = nameTypePart.split(':')[0].trim();
       const ann = nameTypePart.split(':')[1].trim();
       if (ann === 'bytes' || ann === 'bytes | None') type = 'file';
       else if (ann === 'int') type = 'int';
@@ -973,6 +991,12 @@ function parseMainSignature(code) {
     if (name && name !== 'self') params.push({ name, type });
   }
   return params;
+}
+
+// Alias síncrono para compatibilidade (usa cache ou fallback)
+function parseMainSignature(code) {
+  if (_sigCache.id === currentId && _sigCache.code === code) return _sigCache.params;
+  return parseMainSignatureFallback(code);
 }
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
@@ -1076,11 +1100,9 @@ async function runTest() {
 // ─── Auto-fill params ─────────────────────────────────────────────────────────
 function fillDetectedParams() { renderTestParamsFromCode(codeEditor.getValue(), true); }
 
-function renderTestParamsFromCode(code, force) {
+function _applyParamsToEditor(mainParams, force) {
   if (!testEditor) return;
-  const mainParams = parseMainSignature(code);
   if (!mainParams.length) {
-    // fallback: __params__.get()
     const s = currentId && scripts[currentId];
     const detected = s ? (s.detected_params || {}) : {};
     if (force && Object.keys(detected).length) {
@@ -1088,27 +1110,25 @@ function renderTestParamsFromCode(code, force) {
     }
     return;
   }
-  // Só auto-preenche se o editor estiver vazio ou se for chamada explícita
   const current = testEditor.getValue().trim();
   const isEmpty = current === '' || current === '{\n  \n}' || current === '{}';
   if (!isEmpty && !force) return;
   const obj = {};
   for (const p of mainParams) {
-    if (p.type === 'file') {
-      obj[p.name] = '(base64 ou use multipart/form-data)';
-    } else if (p.type === 'int') {
-      obj[p.name] = 42;
-    } else if (p.type === 'bool') {
-      obj[p.name] = true;
-    } else if (p.type === 'dict') {
-      obj[p.name] = {};
-    } else if (p.type === 'list') {
-      obj[p.name] = [];
-    } else {
-      obj[p.name] = 'valor';
-    }
+    if (p.type === 'file') obj[p.name] = '(base64 ou use multipart/form-data)';
+    else if (p.type === 'int') obj[p.name] = p.has_default && p.default !== null ? p.default : 42;
+    else if (p.type === 'float') obj[p.name] = p.has_default && p.default !== null ? p.default : 0.0;
+    else if (p.type === 'bool') obj[p.name] = p.has_default && p.default !== null ? p.default : true;
+    else if (p.type === 'dict') obj[p.name] = p.has_default && p.default !== null ? p.default : {};
+    else if (p.type === 'list') obj[p.name] = p.has_default && p.default !== null ? p.default : [];
+    else obj[p.name] = p.has_default && p.default !== null ? p.default : 'valor';
   }
   testEditor.setValue(JSON.stringify(obj, null, 2));
+}
+
+async function renderTestParamsFromCode(code, force) {
+  const mainParams = await parseMainSignatureAsync(code);
+  _applyParamsToEditor(mainParams, force);
 }
 
 // ─── Token actions ────────────────────────────────────────────────────────────
