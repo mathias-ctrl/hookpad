@@ -595,6 +595,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         # Captura stdout/stderr e libera o objeto subprocess imediatamente
         raw_stdout = result.stdout
         raw_stderr = result.stderr
+        raw_returncode = result.returncode
         del result  # libera memória do subprocess
 
         # Processa protocolo wm_res[success/error] — inspirado no Windmill
@@ -620,7 +621,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         stdout = "\n".join(clean_stdout_lines)
 
         # Determina sucesso: returncode 0 E sem wm_res[error]
-        success = result.returncode == 0 and script_error is None
+        success = raw_returncode == 0 and script_error is None
 
         run_result = {
             "id": str(uuid.uuid4())[:12],
