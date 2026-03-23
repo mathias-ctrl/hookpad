@@ -495,7 +495,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             else:
                 header += f"{safe_key} = __params__.get({json.dumps(k)})\n"
 
-        # Se tem def main(), chama DEPOIS do código do usuário (onde a função está definida)
+        # Se tem def main(), chama DEPOIS do código do usuário
         has_main = "def main(" in code
         footer = ""
         if has_main:
@@ -504,14 +504,42 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             for p in sig_params_list:
                 safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', p["name"])
                 call_args.append(safe_key)
-            footer += f"\n__result__ = main({', '.join(call_args)})\n"
-            footer += "import json as __json, base64 as __b64r\n"
-            footer += (
-                "if isinstance(__result__, (bytes, bytearray)):\n"
-                "    print('__BINARY__:' + __b64r.b64encode(__result__).decode())\n"
-                "elif __result__ is not None:\n"
-                "    print(__json.dumps(__result__, ensure_ascii=False, default=str))\n"
-            )
+            # Protocolo inspirado no Windmill: wm_res[success/error]: + res_to_json
+            footer = """
+import json as __json, base64 as __b64r, sys as __sys, traceback as __tb
+
+def __to_b64(v):
+    return __b64r.b64encode(v).decode('ascii')
+
+def __res_to_json(res):
+    typ = type(res)
+    if typ.__name__ == 'bytes':
+        return __json.dumps(__to_b64(res))
+    elif typ.__name__ == 'DataFrame':
+        try:
+            if typ.__module__ == 'pandas.core.frame':
+                res = res.values.tolist()
+            elif typ.__module__ == 'polars.dataframe.frame':
+                res = res.rows()
+        except Exception:
+            pass
+    elif typ.__name__ == 'dict':
+        for k, v in res.items():
+            if type(v).__name__ == 'bytes':
+                res[k] = __to_b64(v)
+    return __json.dumps(res, ensure_ascii=False, default=str)
+
+try:
+"""
+            footer += f"    __result__ = main({', '.join(call_args)})\n"
+            footer += """    if __result__ is not None:
+        __sys.stdout.write("wm_res[success]:" + __res_to_json(__result__) + "\n")
+except BaseException as __e:
+    import traceback as __tbtb
+    __tb_str = '\n'.join(__tbtb.format_tb(__e.__traceback__))
+    __err = __json.dumps({"message": str(__e), "name": __e.__class__.__name__, "stack": __tb_str}, default=str)
+    __sys.stdout.write("wm_res[error]:" + __err + "\n")
+"""
 
         full_code = header + "\n" + code + "\n" + footer
 
@@ -528,24 +556,45 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         Path(tmp_path).unlink(missing_ok=True)
         duration = int((utcnow() - start).total_seconds() * 1000)
 
-        # Detecta se stdout é binário
-        stdout = result.stdout
+        # Processa protocolo wm_res[success/error] — inspirado no Windmill
+        raw_stdout = result.stdout
         binary_output = None
-        if stdout.startswith("__BINARY__:"):
-            binary_output = stdout[len("__BINARY__:"):].strip()
-            stdout = "[binary output]"
+        script_result = None
+        script_error = None
+        clean_stdout_lines = []
+
+        for line in raw_stdout.splitlines():
+            if line.startswith("wm_res[success]:"):
+                try:
+                    script_result = json.loads(line[len("wm_res[success]:"):])
+                except Exception:
+                    script_result = line[len("wm_res[success]:"):]
+            elif line.startswith("wm_res[error]:"):
+                try:
+                    script_error = json.loads(line[len("wm_res[error]:"):])
+                except Exception:
+                    script_error = {"message": line[len("wm_res[error:]"):]}
+            else:
+                clean_stdout_lines.append(line)
+
+        stdout = "\n".join(clean_stdout_lines)
+
+        # Determina sucesso: returncode 0 E sem wm_res[error]
+        success = result.returncode == 0 and script_error is None
 
         run_result = {
             "id": str(uuid.uuid4())[:12],
-            "success": result.returncode == 0,
+            "success": success,
             "stdout": stdout[:50000],
-            "stderr": (install_log + result.stderr)[:10000],
+            "stderr": (install_log + result.stderr + (script_error.get("stack","") if isinstance(script_error, dict) else ""))[:10000],
             "duration_ms": duration,
             "installed_packages": installed,
             "timestamp": start.isoformat(),
             "triggered_by": triggered_by,
-            "params": {k: v for k, v in params.items() if not binary_params.get(k)},
+            "params": params,
             "binary_output": binary_output,
+            "result": script_result,
+            "error": script_error,
         }
         save_run(script_id, run_result)
         return run_result
@@ -883,15 +932,17 @@ async def _execute_hook(script_id: str, request: Request):
         raw_bytes = base64.b64decode(result["binary_output"])
         return Response(content=raw_bytes, media_type="application/octet-stream")
 
-    # Se o script tem def main() e retornou algo via stdout JSON, devolve direto
-    # em vez de embrulhar no objeto {id, success, stdout, ...}
-    stdout = (result.get("stdout") or "").strip()
-    if result["success"] and stdout:
-        try:
-            parsed = json.loads(stdout)
-            return JSONResponse(parsed, status_code=200)
-        except Exception:
-            pass
+    # Se tem result do main() — devolve direto (igual Windmill)
+    if result["success"] and result.get("result") is not None:
+        return JSONResponse(result["result"], status_code=200)
+
+    # Erro estruturado do main()
+    if result.get("error"):
+        err = result["error"]
+        return JSONResponse(
+            {"error": err.get("message", "Script error"), "details": err.get("stack", "")},
+            status_code=500
+        )
 
     return JSONResponse(result, status_code=200 if result["success"] else 500)
 
