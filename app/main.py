@@ -504,42 +504,47 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             for p in sig_params_list:
                 safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', p["name"])
                 call_args.append(safe_key)
-            # Protocolo inspirado no Windmill: wm_res[success/error]: + res_to_json
-            footer = """
-import json as __json, base64 as __b64r, sys as __sys, traceback as __tb
-
-def __to_b64(v):
-    return __b64r.b64encode(v).decode('ascii')
-
-def __res_to_json(res):
-    typ = type(res)
-    if typ.__name__ == 'bytes':
-        return __json.dumps(__to_b64(res))
-    elif typ.__name__ == 'DataFrame':
-        try:
-            if typ.__module__ == 'pandas.core.frame':
-                res = res.values.tolist()
-            elif typ.__module__ == 'polars.dataframe.frame':
-                res = res.rows()
-        except Exception:
-            pass
-    elif typ.__name__ == 'dict':
-        for k, v in res.items():
-            if type(v).__name__ == 'bytes':
-                res[k] = __to_b64(v)
-    return __json.dumps(res, ensure_ascii=False, default=str)
-
-try:
-"""
-            footer += f"    __result__ = main({', '.join(call_args)})\n"
-            footer += """    if __result__ is not None:
-        __sys.stdout.write("wm_res[success]:" + __res_to_json(__result__) + "\n")
-except BaseException as __e:
-    import traceback as __tbtb
-    __tb_str = '\n'.join(__tbtb.format_tb(__e.__traceback__))
-    __err = __json.dumps({"message": str(__e), "name": __e.__class__.__name__, "stack": __tb_str}, default=str)
-    __sys.stdout.write("wm_res[error]:" + __err + "\n")
-"""
+            # Protocolo wm_res — gerado como lista de linhas para evitar problemas de escape
+            call_str = ", ".join(call_args)
+            footer_lines = [
+                "",
+                "import json as __json, base64 as __b64r, sys as __sys",
+                "",
+                "def __to_b64(v):",
+                "    return __b64r.b64encode(v).decode('ascii')",
+                "",
+                "def __res_to_json(res):",
+                "    typ = type(res)",
+                "    if typ.__name__ == 'bytes':",
+                "        return __json.dumps(__to_b64(res))",
+                "    elif typ.__name__ == 'DataFrame':",
+                "        try:",
+                "            if typ.__module__ == 'pandas.core.frame':",
+                "                res = res.values.tolist()",
+                "            elif typ.__module__ == 'polars.dataframe.frame':",
+                "                res = res.rows()",
+                "        except Exception:",
+                "            pass",
+                "    elif typ.__name__ == 'dict':",
+                "        for k, v in res.items():",
+                "            if type(v).__name__ == 'bytes':",
+                "                res[k] = __to_b64(v)",
+                "    return __json.dumps(res, ensure_ascii=False, default=str)",
+                "",
+                "try:",
+                f"    __result__ = main({call_str})",
+                "    if __result__ is not None:",
+                "        __sys.stdout.write('wm_res[success]:' + __res_to_json(__result__) + chr(10))",
+                "        __sys.stdout.flush()",
+                "except BaseException as __e:",
+                "    import traceback as __tbtb",
+                "    __tb_lines = __tbtb.format_tb(__e.__traceback__)",
+                "    __tb_str = ''.join(__tb_lines)",
+                "    __err = __json.dumps({'message': str(__e), 'name': __e.__class__.__name__, 'stack': __tb_str}, default=str)",
+                "    __sys.stdout.write('wm_res[error]:' + __err + chr(10))",
+                "    __sys.stdout.flush()",
+            ]
+            footer = chr(10).join(footer_lines)
 
         full_code = header + "\n" + code + "\n" + footer
 
