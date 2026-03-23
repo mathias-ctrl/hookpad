@@ -53,6 +53,13 @@ _scripts_lock = threading.Lock()
 app = FastAPI(title="HookPad", docs_url=None, redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Pool limitado para execução de scripts — evita threads/processos ilimitados
+import concurrent.futures
+_script_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=int(os.getenv("MAX_WORKERS", "4")),
+    thread_name_prefix="hookpad-worker"
+)
+
 # ─── Helpers de tempo ────────────────────────────────────────────────────────
 def utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
@@ -193,6 +200,31 @@ def load_settings() -> dict:
 def save_settings(settings: dict):
     SETTINGS_FILE.write_text(json.dumps(settings, indent=2))
 
+def _sanitize_run_for_storage(result: dict) -> dict:
+    """Remove/trunca campos grandes antes de salvar no histórico."""
+    import copy
+    r = copy.copy(result)
+    # Trunca stdout
+    if r.get("stdout"):
+        r["stdout"] = r["stdout"][:500]
+    # Remove result grande (pode ser imagem base64 de MBs)
+    if r.get("result") is not None:
+        result_str = json.dumps(r["result"])
+        if len(result_str) > 2000:
+            r["result"] = f"[truncado: {len(result_str)} bytes]"
+    # Trunca params binários (base64 longo)
+    if r.get("params"):
+        clean_params = {}
+        for k, v in r["params"].items():
+            if isinstance(v, str) and len(v) > 500:
+                clean_params[k] = f"[{len(v)} chars]"
+            else:
+                clean_params[k] = v
+        r["params"] = clean_params
+    # Remove binary_output do histórico (só serve para a resposta HTTP)
+    r.pop("binary_output", None)
+    return r
+
 def save_run(script_id: str, result: dict):
     history_file = HISTORY_DIR / f"{script_id}.json"
     runs = []
@@ -201,10 +233,7 @@ def save_run(script_id: str, result: dict):
             runs = json.loads(history_file.read_text())
         except Exception:
             runs = []
-    # Trunca stdout para manter histórico leve
-    if "stdout" in result and result["stdout"]:
-        result["stdout"] = result["stdout"][:500]
-    runs.insert(0, result)
+    runs.insert(0, _sanitize_run_for_storage(result))
     settings = load_settings()
     days = settings.get("history_days", 30)
     cutoff = utcnow() - timedelta(days=days)
@@ -563,9 +592,12 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         )
         Path(tmp_path).unlink(missing_ok=True)
         duration = int((utcnow() - start).total_seconds() * 1000)
+        # Captura stdout/stderr e libera o objeto subprocess imediatamente
+        raw_stdout = result.stdout
+        raw_stderr = result.stderr
+        del result  # libera memória do subprocess
 
         # Processa protocolo wm_res[success/error] — inspirado no Windmill
-        raw_stdout = result.stdout
         binary_output = None
         script_result = None
         script_error = None
@@ -594,7 +626,7 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             "id": str(uuid.uuid4())[:12],
             "success": success,
             "stdout": stdout[:50000],
-            "stderr": (install_log + result.stderr + (script_error.get("stack","") if isinstance(script_error, dict) else ""))[:10000],
+            "stderr": (install_log + raw_stderr + (script_error.get("stack","") if isinstance(script_error, dict) else ""))[:10000],
             "duration_ms": duration,
             "installed_packages": installed,
             "timestamp": start.isoformat(),
@@ -605,6 +637,10 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             "error": script_error,
         }
         save_run(script_id, run_result)
+        # Libera memória grande antes de retornar (resultado pode ter MBs de base64)
+        import gc
+        del raw_stdout, raw_stderr
+        gc.collect()
         return run_result
 
     except subprocess.TimeoutExpired:
@@ -754,7 +790,7 @@ async def install_script_deps(script_id: str):
         return pkgs, err
 
     loop = asyncio.get_event_loop()
-    pkgs, err = await loop.run_in_executor(None, _do_install)
+    pkgs, err = await loop.run_in_executor(_script_executor, _do_install)
 
     with _scripts_lock:
         scripts2 = load_scripts()
@@ -830,7 +866,7 @@ async def test_script(script_id: str, request: Request):
 
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None,
+        _script_executor,
         partial(run_script, script_id, s["code"], params, "test")
     )
     return result
@@ -930,7 +966,7 @@ async def _execute_hook(script_id: str, request: Request):
 
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None,
+        _script_executor,
         partial(run_script, script_id, s["code"], params, "webhook")
     )
 
