@@ -478,26 +478,20 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
             installed = pkgs
             install_log = err
 
-        # Detecta params binários (base64) e separa pra injeção correta
-        clean_params = {}
-        for k, v in params.items():
-            if isinstance(v, str) and len(v) > 20:
-                try:
-                    decoded = b64mod.b64decode(v)
-                    binary_params[k] = True
-                    clean_params[k] = v  # mantém base64, converte no inject
-                    continue
-                except Exception:
-                    pass
-            clean_params[k] = v
+        # Params sempre como str/primitivo — conversão pra bytes só se
+        # o parâmetro for anotado como `bytes` na assinatura do main()
+        clean_params = dict(params)
+        sig_params_types = {p["name"]: p["type"] for p in parse_main_signature(code)}
 
         # Params injetados no INÍCIO — chamada ao main no FINAL do código
         header = "import base64 as __b64\n"
         header += f"__params__ = {json.dumps(clean_params)}\n"
         for k, v in clean_params.items():
             safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', k)
-            if k in binary_params:
-                header += f"{safe_key} = __b64.b64decode(__params__.get({json.dumps(k)}))\n"
+            param_type = sig_params_types.get(k, "str")
+            if param_type == "file":
+                # Só converte pra bytes se o main() pede bytes
+                header += f"{safe_key} = __b64.b64decode(__params__.get({json.dumps(k)}, ''))\n"
             else:
                 header += f"{safe_key} = __params__.get({json.dumps(k)})\n"
 
@@ -505,9 +499,9 @@ def run_script(script_id: str, code: str, params: dict, triggered_by: str = "web
         has_main = "def main(" in code
         footer = ""
         if has_main:
-            sig_params = parse_main_signature(code)
+            sig_params_list = parse_main_signature(code)
             call_args = []
-            for p in sig_params:
+            for p in sig_params_list:
                 safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', p["name"])
                 call_args.append(safe_key)
             footer += f"\n__result__ = main({', '.join(call_args)})\n"
