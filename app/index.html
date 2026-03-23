@@ -899,6 +899,13 @@ function renderWebhookUrl(s) {
 
 async function renderUsageExample(s) {
   if (!s || !s.token) return;
+  if (!BASE_URL) {
+    try {
+      const r = await fetch('/api/base-url');
+      const d = await r.json();
+      BASE_URL = d.base_url || window.location.origin;
+    } catch(e) { BASE_URL = window.location.origin; }
+  }
   const url = BASE_URL + '/hook/' + s.id;
   const token = s.token;
   const code = codeEditor ? codeEditor.getValue() : (s.code || '');
@@ -1041,7 +1048,9 @@ async function saveScript() {
     scripts[currentId] = updated;
     renderList();
     renderTokenSection(updated);
+    scripts[currentId] = updated;
     renderWebhookUrl(updated);
+    _sigCache = { id: currentId, code: null, params: [] };
     renderUsageExample(updated);
     setStatus('Salvo!', 'ok');
 
