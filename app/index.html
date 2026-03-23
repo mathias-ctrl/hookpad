@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HookPad</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%233b82f6'/><path d='M8 10h4v12H8zM14 16l6-6v12l-6-6z' fill='white'/></svg>">
+<link rel="icon" type="image/png" sizes="96x96" href="data:image/png;base64,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">
+<link rel="icon" type="image/png" sizes="48x48" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFbUlEQVR4nO1Z22scVRifxkbBqm03e2bVBlpodnaNN9qV3PY7M4gGAqZzzq5ZbPH2FvTFJ9+EFkEiVbzUpg9CH6SNlxLzB4gEn3z1QSFNa9GAbfZMSGiutRfblW92Js6cndmbNbvIfnBgmfPNN9/vO9/1rKK0qEUtapGXUoVUe8KCEc2CiYSA85oF65qANef3BO4hj9KMpAnKNAEXExYtlFvIg7xK01BBaUsIeL+S4r4l6B1NwBi+22j1lZqV95/GWEOVR1dAa/oVg+uaoJ/F89D7VH5wB66kSPdpAk5qFr0hn0RC6GZDlMdgLPF5QS/HrfTTYe90LegHNEGvyDGRakRgY0aRLe8qHzEynSrlkyrlq/YCNhXVs3HcSy7QgyUnYcHIlgMopkWvJekJV3lC2ZJKecG78Fmk74U9NngB41I8nN16AILOepWI52kPPncsXwhcwM4hD8ZEwg9+tgEAYM2rRLdlPOAAWC0DYBl5kDfhj4O1BgCgq14l9l41djkAVioBeHIZdksudG3LAWB74FUiKfR+GwCwqVAAeuY75HlC9MY0AVOaRZfsE7DoXAMA0DM+N7Do5/g8ClwjwBaDAfAffUIKShum1obUAruI+f34lmZBGvcw22DAEso3SrIRZIaUJuo8Z/ynAEKz0uDlI8Cm/QDYjGIY25VmIM2CIbmV0AS9qQn4sGux5yHkiermAZWy234Q/E2lWUgTcDSoUYvn4bDLQ4B/KRW1hd3P53YqzUDYrCUEXZFag2mloGxzeWIG20eA/SnFw/EtUbBraOi+GGQOE2CvVtNOY58Tn9cfk/lUYB9IbnSdAD9NgP+sAluzAx7YRRX4tyrwVx5JDd//r5UnOs8S4L8XixD/Sd5PLoCGTZwE4L0gWTsNtis0vdLAdZlQ/nqdqh9rI8A+9Qtktzv7chEvF7qKpPwculSY1Chk3qoBQME5qdPd3bl7a1KfAP8kUJjOs5vKC/qyHLjJPAyXFZwabbfdpEYQKuVnqlZeTZuZUgHspkr5KTLA9yMPpsiAwWSqKuPoPOu45C0C/BsC5kgsfejxDiObVIFxpxW5EwDijcrSixb6Q2rA8lHgKS8bjoyS62wk8sa+ao1EKPsIlQ7bV/XMoAr8qpx6Iz1Ddm0JJRX4EdnyHQPmM7jXtWh0aoJOahZdT4iSvP+2UgdFykxuMd18VgX2l1cfjKFKlvlasv7JTeWdzrH0ZoFeqGemjVQxuanAvpDakOnyAID/5n0hRrk9ZaHlQ69G5uEH9/06grNQbnKLAjekvdUKJ+DvHt1iIg8v/psIWP4PACy7tUPe6xgwHwwFII+DxMjZY2Jpq1AKAAPsbgOIDQ7uqBXArM+FwOwtngBMhd+u0Un7XZ333zUAlNsyozRzUHq+UiEG2ERQEGPLoFmwWKK8RZe6LaPLAX9KCsavyn0rGjK5YRAT45Ar87h/j39fAYA5Igm7gf087sUX+/YkBJyz3UnQFbS8qzzWCafYecDzI2HfQddQPJObcxGAa9JVHtOpHJOV54jgUn/FBRFiyZQKbF4CPoeySpgNYzsWMWwQiVPVAw05wPerlF2QvGHejcmypFLO5FKOJ6ECG0c/RyH2omyg6DaS5Yv8L8pyH32Od6ALeNxhg1D2rhfIw/3ZvSrwdzCIS2SmzdcqKr8JAthY/QHITgTL5EfD3iGUXSPA18tkpXGlNjrW5oAIaqpCF7bgivLPJCbRNnSfWg1CKP9YyeXuqRGAYzXdNKtpf52hp6q/jfBaRaXsUhUnecnbvtdPqdF2zE52igV23h7/8LiB/0ooOxuj7KWar0lSo+0x4MPY5xNgv9gZyJbLZvA7+L3AJNCiFrXo/0V/A6HCjglZeUfRAAAAAElFTkSuQmCC">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js" onload="window._lucideReady=true;initIcons()"></script>
+
 <style>
 :root {
   --bg:      #0a0a0a;
@@ -61,7 +62,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s;
 }
 .icon-btn:hover { background: var(--bg3); color: var(--text); }
-.version-badge { font-family: var(--mono); font-size: 10px; color: var(--text3); padding: 2px 7px; border: 1px solid var(--border); border-radius: 100px; }
 
 /* ── Sidebar ── */
 .sidebar { background: var(--bg1); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -315,7 +315,7 @@ textarea.field-input { resize: vertical; min-height: 56px; }
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="4" height="10" rx="1" fill="currentColor"/><path d="M8 8l5-5v10L8 8z" fill="currentColor"/></svg></div>
+      <div class="login-logo-icon" style="background:none;padding:0;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFbUlEQVR4nO1Z22scVRifxkbBqm03e2bVBlpodnaNN9qV3PY7M4gGAqZzzq5ZbPH2FvTFJ9+EFkEiVbzUpg9CH6SNlxLzB4gEn3z1QSFNa9GAbfZMSGiutRfblW92Js6cndmbNbvIfnBgmfPNN9/vO9/1rKK0qEUtapGXUoVUe8KCEc2CiYSA85oF65qANef3BO4hj9KMpAnKNAEXExYtlFvIg7xK01BBaUsIeL+S4r4l6B1NwBi+22j1lZqV95/GWEOVR1dAa/oVg+uaoJ/F89D7VH5wB66kSPdpAk5qFr0hn0RC6GZDlMdgLPF5QS/HrfTTYe90LegHNEGvyDGRakRgY0aRLe8qHzEynSrlkyrlq/YCNhXVs3HcSy7QgyUnYcHIlgMopkWvJekJV3lC2ZJKecG78Fmk74U9NngB41I8nN16AILOepWI52kPPncsXwhcwM4hD8ZEwg9+tgEAYM2rRLdlPOAAWC0DYBl5kDfhj4O1BgCgq14l9l41djkAVioBeHIZdksudG3LAWB74FUiKfR+GwCwqVAAeuY75HlC9MY0AVOaRZfsE7DoXAMA0DM+N7Do5/g8ClwjwBaDAfAffUIKShum1obUAruI+f34lmZBGvcw22DAEso3SrIRZIaUJuo8Z/ynAEKz0uDlI8Cm/QDYjGIY25VmIM2CIbmV0AS9qQn4sGux5yHkiermAZWy234Q/E2lWUgTcDSoUYvn4bDLQ4B/KRW1hd3P53YqzUDYrCUEXZFag2mloGxzeWIG20eA/SnFw/EtUbBraOi+GGQOE2CvVtNOY58Tn9cfk/lUYB9IbnSdAD9NgP+sAluzAx7YRRX4tyrwVx5JDd//r5UnOs8S4L8XixD/Sd5PLoCGTZwE4L0gWTsNtis0vdLAdZlQ/nqdqh9rI8A+9Qtktzv7chEvF7qKpPwculSY1Chk3qoBQME5qdPd3bl7a1KfAP8kUJjOs5vKC/qyHLjJPAyXFZwabbfdpEYQKuVnqlZeTZuZUgHspkr5KTLA9yMPpsiAwWSqKuPoPOu45C0C/BsC5kgsfejxDiObVIFxpxW5EwDijcrSixb6Q2rA8lHgKS8bjoyS62wk8sa+ao1EKPsIlQ7bV/XMoAr8qpx6Iz1Ddm0JJRX4EdnyHQPmM7jXtWh0aoJOahZdT4iSvP+2UgdFykxuMd18VgX2l1cfjKFKlvlasv7JTeWdzrH0ZoFeqGemjVQxuanAvpDakOnyAID/5n0hRrk9ZaHlQ69G5uEH9/06grNQbnKLAjekvdUKJ+DvHt1iIg8v/psIWP4PACy7tUPe6xgwHwwFII+DxMjZY2Jpq1AKAAPsbgOIDQ7uqBXArM+FwOwtngBMhd+u0Un7XZ333zUAlNsyozRzUHq+UiEG2ERQEGPLoFmwWKK8RZe6LaPLAX9KCsavyn0rGjK5YRAT45Ar87h/j39fAYA5Igm7gf087sUX+/YkBJyz3UnQFbS8qzzWCafYecDzI2HfQddQPJObcxGAa9JVHtOpHJOV54jgUn/FBRFiyZQKbF4CPoeySpgNYzsWMWwQiVPVAw05wPerlF2QvGHejcmypFLO5FKOJ6ECG0c/RyH2omyg6DaS5Yv8L8pyH32Od6ALeNxhg1D2rhfIw/3ZvSrwdzCIS2SmzdcqKr8JAthY/QHITgTL5EfD3iGUXSPA18tkpXGlNjrW5oAIaqpCF7bgivLPJCbRNnSfWg1CKP9YyeXuqRGAYzXdNKtpf52hp6q/jfBaRaXsUhUnecnbvtdPqdF2zE52igV23h7/8LiB/0ooOxuj7KWar0lSo+0x4MPY5xNgv9gZyJbLZvA7+L3AJNCiFrXo/0V/A6HCjglZeUfRAAAAAElFTkSuQmCC" style="width:28px;height:28px;object-fit:contain;"></div>
       HookPad
     </div>
     <div class="login-label">Admin Token</div>
@@ -330,14 +330,13 @@ textarea.field-input { resize: vertical; min-height: 56px; }
   <!-- Topbar -->
   <div class="topbar">
     <div class="logo">
-      <div class="logo-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="4" height="10" rx="1" fill="currentColor"/><path d="M8 8l5-5v10L8 8z" fill="currentColor"/></svg></div>
+      <div class="logo-icon" style="background:none;padding:0;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFbUlEQVR4nO1Z22scVRifxkbBqm03e2bVBlpodnaNN9qV3PY7M4gGAqZzzq5ZbPH2FvTFJ9+EFkEiVbzUpg9CH6SNlxLzB4gEn3z1QSFNa9GAbfZMSGiutRfblW92Js6cndmbNbvIfnBgmfPNN9/vO9/1rKK0qEUtapGXUoVUe8KCEc2CiYSA85oF65qANef3BO4hj9KMpAnKNAEXExYtlFvIg7xK01BBaUsIeL+S4r4l6B1NwBi+22j1lZqV95/GWEOVR1dAa/oVg+uaoJ/F89D7VH5wB66kSPdpAk5qFr0hn0RC6GZDlMdgLPF5QS/HrfTTYe90LegHNEGvyDGRakRgY0aRLe8qHzEynSrlkyrlq/YCNhXVs3HcSy7QgyUnYcHIlgMopkWvJekJV3lC2ZJKecG78Fmk74U9NngB41I8nN16AILOepWI52kPPncsXwhcwM4hD8ZEwg9+tgEAYM2rRLdlPOAAWC0DYBl5kDfhj4O1BgCgq14l9l41djkAVioBeHIZdksudG3LAWB74FUiKfR+GwCwqVAAeuY75HlC9MY0AVOaRZfsE7DoXAMA0DM+N7Do5/g8ClwjwBaDAfAffUIKShum1obUAruI+f34lmZBGvcw22DAEso3SrIRZIaUJuo8Z/ynAEKz0uDlI8Cm/QDYjGIY25VmIM2CIbmV0AS9qQn4sGux5yHkiermAZWy234Q/E2lWUgTcDSoUYvn4bDLQ4B/KRW1hd3P53YqzUDYrCUEXZFag2mloGxzeWIG20eA/SnFw/EtUbBraOi+GGQOE2CvVtNOY58Tn9cfk/lUYB9IbnSdAD9NgP+sAluzAx7YRRX4tyrwVx5JDd//r5UnOs8S4L8XixD/Sd5PLoCGTZwE4L0gWTsNtis0vdLAdZlQ/nqdqh9rI8A+9Qtktzv7chEvF7qKpPwculSY1Chk3qoBQME5qdPd3bl7a1KfAP8kUJjOs5vKC/qyHLjJPAyXFZwabbfdpEYQKuVnqlZeTZuZUgHspkr5KTLA9yMPpsiAwWSqKuPoPOu45C0C/BsC5kgsfejxDiObVIFxpxW5EwDijcrSixb6Q2rA8lHgKS8bjoyS62wk8sa+ao1EKPsIlQ7bV/XMoAr8qpx6Iz1Ddm0JJRX4EdnyHQPmM7jXtWh0aoJOahZdT4iSvP+2UgdFykxuMd18VgX2l1cfjKFKlvlasv7JTeWdzrH0ZoFeqGemjVQxuanAvpDakOnyAID/5n0hRrk9ZaHlQ69G5uEH9/06grNQbnKLAjekvdUKJ+DvHt1iIg8v/psIWP4PACy7tUPe6xgwHwwFII+DxMjZY2Jpq1AKAAPsbgOIDQ7uqBXArM+FwOwtngBMhd+u0Un7XZ333zUAlNsyozRzUHq+UiEG2ERQEGPLoFmwWKK8RZe6LaPLAX9KCsavyn0rGjK5YRAT45Ar87h/j39fAYA5Igm7gf087sUX+/YkBJyz3UnQFbS8qzzWCafYecDzI2HfQddQPJObcxGAa9JVHtOpHJOV54jgUn/FBRFiyZQKbF4CPoeySpgNYzsWMWwQiVPVAw05wPerlF2QvGHejcmypFLO5FKOJ6ECG0c/RyH2omyg6DaS5Yv8L8pyH32Od6ALeNxhg1D2rhfIw/3ZvSrwdzCIS2SmzdcqKr8JAthY/QHITgTL5EfD3iGUXSPA18tkpXGlNjrW5oAIaqpCF7bgivLPJCbRNnSfWg1CKP9YyeXuqRGAYzXdNKtpf52hp6q/jfBaRaXsUhUnecnbvtdPqdF2zE52igV23h7/8LiB/0ooOxuj7KWar0lSo+0x4MPY5xNgv9gZyJbLZvA7+L3AJNCiFrXo/0V/A6HCjglZeUfRAAAAAElFTkSuQmCC" style="width:22px;height:22px;object-fit:contain;"></div>
       HookPad
     </div>
     <div class="topbar-sep"></div>
     <div class="topbar-actions">
-      <span class="version-badge">v2.0</span>
-      <button class="icon-btn" onclick="switchHowTo()" title="Como usar"><i data-lucide="book-open" style="width:15px;height:15px;"></i></button>
-      <button class="icon-btn" onclick="openSettings()" title="Configurações"><i data-lucide="settings" style="width:15px;height:15px;"></i></button>
+      <button onclick="switchHowTo()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:var(--radius);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .15s;" onmouseover="this.style.background='var(--bg4)';this.style.color='var(--text)';" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text2)';">Como usar</button>
+      <button class="icon-btn" onclick="openSettings()" title="Configurações"><span style="font-size:12px;line-height:1;">⚙</span></button>
     </div>
   </div>
 
@@ -346,7 +345,7 @@ textarea.field-input { resize: vertical; min-height: 56px; }
     <div class="sidebar-head">
       <span class="sidebar-title">Scripts</span>
       <button class="btn-new-script" onclick="openNewModal()">
-        <i data-lucide="plus" style="width:12px;height:12px;"></i> Novo
+        <span style="font-size:12px;line-height:1;">+</span> Novo
       </button>
     </div>
     <div class="script-list" id="script-list"></div>
@@ -356,7 +355,7 @@ textarea.field-input { resize: vertical; min-height: 56px; }
   <div class="main" id="main-area">
     <!-- Empty state -->
     <div class="empty-state" id="empty-state" style="display:flex;">
-      <div class="empty-icon"><i data-lucide="webhook" style="width:36px;height:36px;"></i></div>
+      <div class="empty-icon"><span style="font-size:12px;line-height:1;">⌁</span></div>
       <div class="empty-label">Selecione ou crie um script</div>
     </div>
 
@@ -479,7 +478,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
             <div id="token-filled" class="token-filled-state" style="display:none;">
               <div class="token-value-row">
                 <div class="token-val" id="cfg-token"></div>
-                <button class="btn-sm" onclick="copyToken()"><i data-lucide="copy" style="width:11px;height:11px;"></i></button>
+                <button class="btn-sm" onclick="copyToken()"><span style="font-size:12px;line-height:1;">⎘</span></button>
               </div>
               <div class="token-actions-row">
                 <span class="token-expiry-label" id="token-expiry-label"></span>
@@ -508,7 +507,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
           <div class="config-section-title">Webhook URL</div>
           <div class="url-box" id="cfg-webhook-url" onclick="copyWebhookUrl()">
             <span class="url-box-text url-no-token" id="webhook-url-text">Gere um token para ver a URL</span>
-            <i data-lucide="external-link" style="width:12px;height:12px;flex-shrink:0;opacity:.4;"></i>
+            <span style="font-size:12px;line-height:1;">↗</span>
           </div>
         </div>
 
@@ -518,7 +517,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
           <div class="curl-box-wrap">
             <pre class="curl-box" id="curl-example"></pre>
             <button class="curl-copy-btn" onclick="copyCurl()">
-              <i data-lucide="copy" style="width:11px;height:11px;"></i> Copiar
+              <span style="font-size:12px;line-height:1;">⎘</span> Copiar
             </button>
           </div>
         </div>
@@ -540,7 +539,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
               Resultado
               <div class="test-panel-head-right">
                 <button class="btn-sm" id="copy-result-btn" onclick="copyResult()" style="display:none;">
-                  <i data-lucide="copy" style="width:11px;height:11px;"></i> Copiar
+                  <span style="font-size:12px;line-height:1;">⎘</span> Copiar
                 </button>
               </div>
             </div>
@@ -558,7 +557,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
           <span style="font-size:11px;color:var(--text3);">Execuções recentes</span>
           <div style="flex:1;"></div>
           <button class="btn-sm danger" onclick="clearScriptHistory()">
-            <i data-lucide="trash-2" style="width:11px;height:11px;"></i> Limpar
+            <span style="font-size:12px;line-height:1;">✕</span> Limpar
           </button>
         </div>
         <div class="history-list" id="script-history-list">
@@ -569,10 +568,10 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
       <!-- Action bar -->
       <div class="action-bar">
         <button class="btn-primary" onclick="saveScript()" id="btn-save">
-          <i data-lucide="save" style="width:13px;height:13px;"></i> Salvar
+          <span style="font-size:12px;line-height:1;">↓</span> Salvar
         </button>
         <button class="btn-run" onclick="runTest()" id="btn-run">
-          <i data-lucide="play" style="width:13px;height:13px;"></i> Executar
+          <span style="font-size:12px;line-height:1;">▶</span> Executar
         </button>
         <div class="bar-spacer"></div>
         <span class="status-msg" id="status-msg"></span>
@@ -600,14 +599,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
   <div class="modal">
     <h3>Configurações</h3>
     <div class="settings-section">
-      <div class="settings-row">
-        <span class="settings-row-label">Retenção do histórico</span>
-        <div class="hdays-opts">
-          <div class="hdays-opt" id="hdays-30" onclick="selectHistoryDays(30)">30d</div>
-          <div class="hdays-opt" id="hdays-60" onclick="selectHistoryDays(60)">60d</div>
-          <div class="hdays-opt" id="hdays-90" onclick="selectHistoryDays(90)">90d</div>
-        </div>
-      </div>
+      <div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0;">Histórico fixo em 30 dias</div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeSettings()">Fechar</button>
@@ -619,8 +611,7 @@ return b"\x89PNG..."      # → application/octet-stream</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
 // ─── Lucide safe wrapper ─────────────────────────────────────────────────────
-function initIcons() {
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+function  {
 }
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -866,8 +857,8 @@ async function runTest() {
   if (!currentId) return;
   const btn = document.getElementById('btn-run');
   btn.disabled = true;
-  btn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;"></i> Executando...';
-  initIcons();
+  btn.innerHTML = '<span style="font-size:12px;line-height:1;">○</span> Executando...';
+  
   document.getElementById('test-output').innerHTML = '<div class="result-content" style="color:var(--text3);">Executando...</div>';
   document.getElementById('result-meta').style.display = 'none';
   document.getElementById('copy-result-btn').style.display = 'none';
@@ -895,8 +886,8 @@ async function runTest() {
     document.getElementById('test-output').innerHTML = '<div class="result-content err">' + esc(e.message) + '</div>';
   }
   btn.disabled = false;
-  btn.innerHTML = '<i data-lucide="play" style="width:13px;height:13px;"></i> Executar';
-  initIcons();
+  btn.innerHTML = '<span style="font-size:12px;line-height:1;">▶</span> Executar';
+  
 }
 
 function copyResult() {
@@ -1097,7 +1088,7 @@ function renderHistoryList(runs) {
       + '<div class="run-right">'
       + '  <span class="run-trigger-badge trig-' + (r.triggered_by || 'webhook') + '">' + (r.triggered_by || 'webhook') + '</span>'
       + '  <span class="run-dur">' + r.duration_ms + 'ms</span>'
-      + '  <i data-lucide="chevron-right" class="run-chevron" style="width:13px;height:13px;" id="chevron-' + r.id + '"></i>'
+      + '  <span style="font-size:12px;line-height:1;">›</span>'
       + '</div>'
       + '</div>'
       + '<div class="run-detail" id="run-detail-' + r.id + '">'
@@ -1107,7 +1098,7 @@ function renderHistoryList(runs) {
       + (r.installed_packages && r.installed_packages.length ? '<div class="run-detail-section"><div class="run-detail-label">pacotes</div><div class="run-detail-pre" style="color:var(--purple);">' + r.installed_packages.join(', ') + '</div></div>' : '')
       + '</div>';
   }).join('');
-  initIcons();
+  
 }
 function toggleRun(id) {
   const detail = document.getElementById('run-detail-' + id);
@@ -1204,7 +1195,7 @@ document.addEventListener('keydown', e => {
 
 // Init icons
 document.addEventListener('DOMContentLoaded', () => {
-  initIcons();
+  
   if (!localStorage.getItem('admin_token')) showLogin();
 });
 </script>
