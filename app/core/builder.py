@@ -12,6 +12,7 @@ import threading
 from datetime import timezone, datetime
 from typing import Optional
 
+from core.events import broadcaster, EVENT_BUILD_UPDATED
 from core.utils import (
     ensure_venv, extract_imports, install_packages,
     utcnow_iso,
@@ -75,6 +76,14 @@ def _run_build(script_id: str, version_id: str, code: str) -> None:
                 (script_id,),
             )
         conn.commit()
+        # Notifica clientes SSE
+        build_status = "failed" if err else "ready"
+        broadcaster.publish(EVENT_BUILD_UPDATED, {
+            "script_id":  script_id,
+            "version_id": version_id,
+            "status":     build_status,
+            "error":      err[:500] if err else None,
+        })
 
     except Exception as exc:
         try:

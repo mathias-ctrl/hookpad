@@ -37,6 +37,7 @@ from routers.folders    import router as folders_router
 from routers.webhook    import router as webhook_router
 from routers.test_run   import router as test_router
 from routers.settings   import router as settings_router
+from routers.events     import router as events_router
 
 app.include_router(scripts_router)
 app.include_router(exec_router)
@@ -44,6 +45,7 @@ app.include_router(folders_router)
 app.include_router(webhook_router)
 app.include_router(test_router)
 app.include_router(settings_router)
+app.include_router(events_router)
 
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
@@ -51,6 +53,14 @@ app.include_router(settings_router)
 def frontend():
     html_path = Path(__file__).parent / "index.html"
     return html_path.read_text(encoding="utf-8")
+
+
+@app.get("/api/docs/como-usar")
+def get_como_usar():
+    """Retorna o guia de uso em Markdown."""
+    from fastapi.responses import PlainTextResponse
+    md_path = Path(__file__).parent / "como_usar.md"
+    return PlainTextResponse(md_path.read_text(encoding="utf-8"), media_type="text/markdown; charset=utf-8")
 
 
 # ── Startup / Shutdown ────────────────────────────────────────────────────────

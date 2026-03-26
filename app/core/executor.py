@@ -9,6 +9,11 @@ import json
 import secrets
 from typing import Any, Optional
 
+from core.events import (
+    broadcaster,
+    EVENT_EXECUTION_CREATED,
+    EVENT_EXECUTION_UPDATED,
+)
 from core.preview import (
     INPUT_PREVIEW_LIMIT, OUTPUT_PREVIEW_LIMIT,
     build_input_full, build_output_full,
@@ -120,6 +125,15 @@ def create_execution(
         ),
     )
     conn.commit()
+
+    # Notifica clientes SSE
+    broadcaster.publish(EVENT_EXECUTION_CREATED, {
+        "execution_id": exec_id,
+        "script_id":    script_id,
+        "trigger_type": trigger_type,
+        "status":       ExecStatus.QUEUED,
+    })
+
     return exec_id
 
 
@@ -216,6 +230,15 @@ def run_execution(
         ),
     )
     conn.commit()
+
+    # Notifica clientes SSE
+    broadcaster.publish(EVENT_EXECUTION_UPDATED, {
+        "execution_id": exec_id,
+        "script_id":    script_id,
+        "status":       status,
+        "duration_ms":  result.get("duration_ms"),
+        "error_message": result.get("error_message"),
+    })
 
     result["execution_id"] = exec_id
     result["status"]       = status

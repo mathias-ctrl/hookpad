@@ -271,6 +271,27 @@ select.field-input{cursor:pointer}
 .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:all .15s}
 .btn-cancel:hover{background:var(--bg3)}
 
+/* Docs modal */
+.docs-modal-body{max-height:70vh;overflow-y:auto;padding:4px 0}
+.docs-modal-body h1{font-size:16px;font-weight:600;color:var(--text);margin:0 0 12px}
+.docs-modal-body h2{font-size:13px;font-weight:600;color:var(--text);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.docs-modal-body h3{font-size:12px;font-weight:600;color:var(--text2);margin:14px 0 6px}
+.docs-modal-body p{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px}
+.docs-modal-body ul,.docs-modal-body ol{font-size:12px;color:var(--text2);padding-left:18px;margin-bottom:8px;line-height:1.8}
+.docs-modal-body li{margin-bottom:2px}
+.docs-modal-body code{font-family:var(--mono);font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--purple)}
+.docs-modal-body pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;overflow-x:auto;margin-bottom:10px}
+.docs-modal-body pre code{background:none;padding:0;color:var(--text2);font-size:11px;line-height:1.6}
+.docs-modal-body table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}
+.docs-modal-body th{background:var(--bg2);color:var(--text2);padding:5px 10px;border:1px solid var(--border);text-align:left;font-weight:500}
+.docs-modal-body td{padding:5px 10px;border:1px solid var(--border);color:var(--text2)}
+.docs-modal-body hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+.docs-modal-body strong{color:var(--text);font-weight:600}
+.docs-modal-body a{color:var(--accent)}
+/* SSE dot pulse */
+@keyframes sse-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sse-connecting{animation:sse-pulse 1.4s ease-in-out infinite}
+
 /* Login */
 #login-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column}
 .login-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius2);padding:28px 28px 24px;width:320px;display:flex;flex-direction:column;gap:14px}
@@ -318,11 +339,20 @@ select.field-input{cursor:pointer}
     <div class="sidebar-head">
       <span class="sidebar-title" style="font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:-.2px;text-transform:none;">HookPad</span>
       <button class="icon-btn" onclick="openNewFolderInline()" title="Nova pasta"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></button>
+      <button class="icon-btn" onclick="openDocsModal()" title="Como usar">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
       <button class="icon-btn" onclick="openNewModal()" title="Novo script"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></button>
     </div>
     
     <div class="tree" id="file-tree"></div>
-    <div class="sidebar-footer"><span class="status-msg" id="status-msg"></span></div>
+    <div class="sidebar-footer">
+    <span class="status-msg" id="status-msg"></span>
+    <span id="sse-indicator" title="Conexão em tempo real" style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);">
+      <span id="sse-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;"></span>
+      <span id="sse-label">offline</span>
+    </span>
+  </div>
   </div>
 
   <div class="main">
@@ -538,6 +568,24 @@ select.field-input{cursor:pointer}
   </div>
 </div>
 
+
+<!-- Docs Modal -->
+<div class="modal-backdrop hidden" id="docs-modal" onclick="if(event.target===this)closeDocsModal()">
+  <div class="modal" style="width:680px;max-width:95vw;">
+    <h3>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Como usar o HookPad
+    </h3>
+    <div class="docs-modal-body" id="docs-content">
+      <div style="padding:24px;text-align:center;color:var(--text3);">Carregando...</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDocsModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -568,6 +616,7 @@ function showLogin(msg) {
 function hideLogin() {
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='grid';
+  sseConnect();
 }
 async function doLogin() {
   const t=document.getElementById('login-input').value.trim(); if(!t) return;
@@ -587,7 +636,7 @@ const API=async(method,path,body)=>{
   const r=await fetch(path,opts);
   if(!r.ok){
     const e=await r.json().catch(()=>({detail:r.statusText}));
-    if(r.status===401){localStorage.removeItem('admin_token');ADMIN_TOKEN='';showLogin('Sessão expirada');return;}
+    if(r.status===401){localStorage.removeItem('admin_token');ADMIN_TOKEN='';sseDisconnect();showLogin('Sessão expirada');return;}
     throw new Error(e.detail||r.statusText);
   }
   return r.json();
@@ -1334,9 +1383,164 @@ function fmtTime(iso){
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// ── SSE — conexão em tempo real ──────────────────────────────────────────────
+let _sseSource = null;
+let _sseReconnectTimer = null;
+let _sseReconnectDelay = 2000;
+
+function sseConnect(){
+  if(_sseSource) return;
+  if(!ADMIN_TOKEN) return;
+
+  const url = `/api/events?admin_token=${encodeURIComponent(ADMIN_TOKEN)}`;
+  _sseSource = new EventSource(url);
+
+  _sseSource.addEventListener('connected', ()=>{
+    _sseReconnectDelay = 2000;
+    setSseStatus('online');
+  });
+
+  _sseSource.addEventListener('heartbeat', ()=>{
+    setSseStatus('online');
+  });
+
+  _sseSource.addEventListener('execution.created', e=>{
+    try{
+      const d = JSON.parse(e.data);
+      // Se estamos vendo as execuções deste script, recarrega
+      if(currentId && d.script_id === currentId){
+        loadExecHistory(true);
+      }
+    }catch(_){}
+  });
+
+  _sseSource.addEventListener('execution.updated', e=>{
+    try{
+      const d = JSON.parse(e.data);
+      if(currentId && d.script_id === currentId){
+        // Atualiza só o item na lista sem recarregar tudo
+        _refreshExecItem(d);
+      }
+    }catch(_){}
+  });
+
+  _sseSource.addEventListener('script.updated', e=>{
+    try{
+      const d = JSON.parse(e.data);
+      // Recarrega script na sidebar
+      loadScripts();
+      if(currentId && d.script_id === currentId){
+        API('GET', '/api/scripts/'+currentId).then(s=>{
+          if(!s) return;
+          scripts[currentId]=s;
+          renderTree();
+          renderTokenSection(s);
+          renderWebhookUrl(s);
+        }).catch(()=>{});
+      }
+    }catch(_){}
+  });
+
+  _sseSource.addEventListener('token.expired', e=>{
+    try{
+      const d = JSON.parse(e.data);
+      if(scripts[d.script_id]){
+        scripts[d.script_id].token = null;
+        renderTree();
+        if(currentId === d.script_id) renderTokenSection(scripts[d.script_id]);
+      }
+    }catch(_){}
+  });
+
+  _sseSource.addEventListener('build.updated', e=>{
+    try{
+      const d = JSON.parse(e.data);
+      if(currentId && d.script_id === currentId){
+        // Usa o mesmo polling de build já existente
+        if(d.status === 'ready'){
+          scripts[currentId].packages_ready=1;
+          renderTree();
+          const b=document.getElementById('build-banner');
+          if(b){ b.className='build-banner ready'; b.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Build pronto — script publicado'; b.style.display='flex'; }
+          updatePublishBtn(true);
+        } else if(d.status === 'failed'){
+          const b=document.getElementById('build-banner');
+          if(b){ b.className='build-banner failed'; b.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Build falhou: '+esc(d.error||''); b.style.display='flex'; }
+          updatePublishBtn(true);
+        }
+      }
+    }catch(_){}
+  });
+
+  _sseSource.onerror = ()=>{
+    setSseStatus('offline');
+    _sseSource.close();
+    _sseSource = null;
+    // Reconecta com backoff exponencial (máx 30s)
+    clearTimeout(_sseReconnectTimer);
+    _sseReconnectTimer = setTimeout(()=>{
+      _sseReconnectDelay = Math.min(_sseReconnectDelay * 1.5, 30000);
+      sseConnect();
+    }, _sseReconnectDelay);
+  };
+
+  setSseStatus('connecting');
+}
+
+function sseDisconnect(){
+  clearTimeout(_sseReconnectTimer);
+  if(_sseSource){ _sseSource.close(); _sseSource=null; }
+  setSseStatus('offline');
+}
+
+function setSseStatus(state){
+  const dot   = document.getElementById('sse-dot');
+  const label = document.getElementById('sse-label');
+  if(!dot || !label) return;
+  const colors = {online:'#22c55e', offline:'#666666', connecting:'#f59e0b'};
+  dot.style.background = colors[state] || colors.offline;
+  dot.className = state === 'connecting' ? 'sse-connecting' : '';
+  label.textContent = state;
+}
+
+function _refreshExecItem(data){
+  // Atualiza badge de status na lista de execuções sem reload total
+  const execId = data.execution_id;
+  const row = document.getElementById('run-detail-'+execId);
+  if(!row) return; // item não está visível, próximo loadExecHistory vai pegar
+  // Reload leve só se a aba de execuções estiver ativa
+  const histPane = document.getElementById('pane-history');
+  if(histPane && histPane.classList.contains('show')) loadExecHistory(true);
+}
+
+// ── Docs Modal ────────────────────────────────────────────────────────────────
+let _docsMdCache = null;
+
+async function openDocsModal(){
+  document.getElementById('docs-modal').classList.remove('hidden');
+  if(_docsMdCache){
+    document.getElementById('docs-content').innerHTML = _docsMdCache;
+    return;
+  }
+  try{
+    const r = await fetch('/api/docs/como-usar', {headers:{'x-admin-token': ADMIN_TOKEN}});
+    const md = await r.text();
+    // marked configurado para não executar scripts inline
+    const html = marked.parse(md, {gfm:true, breaks:false});
+    _docsMdCache = html;
+    document.getElementById('docs-content').innerHTML = html;
+  }catch(e){
+    document.getElementById('docs-content').innerHTML = '<p style="color:var(--red);">Erro ao carregar guia: '+esc(e.message)+'</p>';
+  }
+}
+
+function closeDocsModal(){
+  document.getElementById('docs-modal').classList.add('hidden');
+}
+
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape') closeNewModal();
+  if(e.key==='Escape'){ closeNewModal(); closeDocsModal(); }
   if(e.key==='Enter'&&!document.getElementById('new-modal').classList.contains('hidden')) createScript();
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDraft();}
   if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='P'){e.preventDefault();publishScript();}

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 from core.auth import require_admin
+from core.events import broadcaster, EVENT_SCRIPT_UPDATED, EVENT_TOKEN_EXPIRED
 from core.builder import create_version, get_build_status
 from core.utils import (
     parse_main_signature, slugify, sanitize_slug,
@@ -236,7 +237,13 @@ def update_script(script_id: str, body: ScriptUpdate):
         list(updates.values()) + [script_id],
     )
     conn.commit()
-    return _enrich(_get_or_404(script_id))
+    updated = _enrich(_get_or_404(script_id))
+    broadcaster.publish(EVENT_SCRIPT_UPDATED, {
+        "script_id": script_id,
+        "action":    "updated",
+        "enabled":   updated.get("enabled"),
+    })
+    return updated
 
 
 @router.delete("/{script_id}", dependencies=[Depends(require_admin)])
@@ -422,6 +429,7 @@ def enable_script(script_id: str):
         (utcnow_iso(), script_id),
     )
     get_conn().commit()
+    broadcaster.publish(EVENT_SCRIPT_UPDATED, {"script_id": script_id, "action": "enabled"})
     return {"ok": True}
 
 
