@@ -1,4 +1,4 @@
-# HookPad 🪝
+# HookPad 
 
 Execute scripts Python como webhooks com editor Monaco, auto-install de dependências, venv isolado por script e autenticação por token.
 
