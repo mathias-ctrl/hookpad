@@ -1211,7 +1211,12 @@ function renderExecList(execs, append=false){
     }).join('');
   el.insertAdjacentHTML('beforeend', fragment);
 }
-function toggleRun(id){document.getElementById('run-detail-'+id)?.classList.toggle('show');}
+function toggleRun(id){
+  const target=document.getElementById('run-detail-'+id);
+  const willOpen=target && !target.classList.contains('show');
+  document.querySelectorAll('.run-detail.show').forEach(el=>el.classList.remove('show'));
+  if(willOpen) target.classList.add('show');
+}
 async function clearExecHistory(){
   if(!currentId||!confirm('Limpar histórico?')) return;
   await API('DELETE','/api/executions?script_id='+currentId);

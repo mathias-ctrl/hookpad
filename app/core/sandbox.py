@@ -203,6 +203,19 @@ def execute_script(
         stdout = stdout[:MAX_LOG_BYTES]
         stderr_full = stderr_full[:MAX_LOG_BYTES]
 
+        # Limita o valor retornado antes que ele seja enviado/persistido.
+        # O subprocesso ainda pode produzir muito stdout; para proteção total,
+        # a próxima evolução deve trocar capture_output por leitura streaming.
+        if script_result is not None:
+            result_raw = json.dumps(script_result, ensure_ascii=False, default=str).encode("utf-8")
+            if len(result_raw) > MAX_RESPONSE_BYTES:
+                script_error = {
+                    "message": f"Resposta excedeu o limite de {MAX_RESPONSE_BYTES} bytes",
+                    "name": "ResponseTooLarge",
+                    "stack": "",
+                }
+                script_result = None
+
         success = raw_rc == 0 and script_error is None
         duration = int((utcnow() - start).total_seconds() * 1000)
 

@@ -18,9 +18,10 @@ from core.preview import (
     INPUT_PREVIEW_LIMIT, OUTPUT_PREVIEW_LIMIT,
     build_input_full, build_output_full,
     encode_cursor, decode_cursor,
-    make_preview,
+    make_preview, serialize_limited,
 )
 from core.sandbox import execute_script
+from core.config import MAX_EXEC_PAYLOAD_BYTES, MAX_LOG_BYTES
 from core.utils import utcnow_iso
 from db.database import get_conn, row_to_dict
 
@@ -92,6 +93,7 @@ def create_execution(
         script_version_id=script_version_id,
     )
     ip_info = make_preview(input_full, limit=INPUT_PREVIEW_LIMIT)
+    input_stored = serialize_limited(input_full, MAX_EXEC_PAYLOAD_BYTES)
 
     conn = get_conn()
     conn.execute(
@@ -117,11 +119,10 @@ def create_execution(
            VALUES (?,?,?,?,?)""",
         (
             exec_id,
-            json.dumps(input_full, ensure_ascii=False),
-            json.dumps(request_headers) if request_headers else None,
-            json.dumps(request_query) if request_query else None,
-            json.dumps(request_body, ensure_ascii=False, default=str)
-            if request_body is not None else None,
+            input_stored["text"],
+            serialize_limited(request_headers, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_headers else None,
+            serialize_limited(request_query, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_query else None,
+            None,  # body já está em input_full; evita duplicação no SQLite
         ),
     )
     conn.commit()
@@ -189,6 +190,11 @@ def run_execution(
         duration_ms=result.get("duration_ms"),
     )
     op_info = make_preview(output_full, limit=OUTPUT_PREVIEW_LIMIT)
+    output_stored = serialize_limited(output_full, MAX_EXEC_PAYLOAD_BYTES)
+    response_stored = (
+        serialize_limited(response_body, MAX_EXEC_PAYLOAD_BYTES)["text"]
+        if response_body is not None else None
+    )
 
     # Persiste payload de output
     conn.execute(
@@ -200,11 +206,10 @@ def run_execution(
            SET output_full=?, response_body=?, stdout=?, stderr=?
            WHERE execution_id=?""",
         (
-            json.dumps(output_full, ensure_ascii=False, default=str),
-            json.dumps(response_body, ensure_ascii=False, default=str)
-            if response_body is not None else None,
-            (result.get("stdout") or "")[:200_000] or None,
-            (result.get("stderr") or "")[:50_000] or None,
+            output_stored["text"],
+            response_stored,
+            (result.get("stdout") or "")[:MAX_LOG_BYTES] or None,
+            (result.get("stderr") or "")[:MAX_LOG_BYTES] or None,
             exec_id,
         ),
     )

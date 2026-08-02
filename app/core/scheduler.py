@@ -14,12 +14,14 @@ from datetime import datetime
 from typing import Optional
 
 from core.utils import utcnow
+from core.config import HISTORY_CLEANUP_INTERVAL_SEC
 from db.database import get_conn
 
 log = logging.getLogger("hookpad.scheduler")
 
 _running = False
 _thread: Optional[threading.Thread] = None
+_last_history_cleanup = 0.0
 
 
 def start():
@@ -84,8 +86,15 @@ def _loop():
 
 
 def _tick():
+    global _last_history_cleanup
     conn = get_conn()
     now  = utcnow()
+
+    monotonic_now = time.monotonic()
+    if monotonic_now - _last_history_cleanup >= HISTORY_CLEANUP_INTERVAL_SEC:
+        from core.history import cleanup_expired_history
+        cleanup_expired_history()
+        _last_history_cleanup = monotonic_now
 
     rows = conn.execute(
         """SELECT id, draft_code, published_version_id, schedule_interval,

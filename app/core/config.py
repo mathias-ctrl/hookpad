@@ -24,6 +24,8 @@ CPU_LIMIT_SEC  = int(os.getenv("SANDBOX_CPU_SEC", "60"))
 MAX_BODY_BYTES     = int(os.getenv("MAX_BODY_BYTES", str(10 * 1024 * 1024)))   # 10 MB
 MAX_RESPONSE_BYTES = int(os.getenv("MAX_RESPONSE_BYTES", str(10 * 1024 * 1024)))
 MAX_LOG_BYTES      = int(os.getenv("MAX_LOG_BYTES", str(512 * 1024)))           # 512 KB
+MAX_EXEC_PAYLOAD_BYTES = int(os.getenv("MAX_EXEC_PAYLOAD_BYTES", str(512 * 1024))) # 512 KB por input/output persistido
+HISTORY_CLEANUP_INTERVAL_SEC = int(os.getenv("HISTORY_CLEANUP_INTERVAL_SEC", "3600"))
 
 for d in [DATA_DIR, VENV_DIR, SCRIPTS_DIR, HISTORY_DIR, BUILDS_DIR]:
     d.mkdir(parents=True, exist_ok=True)

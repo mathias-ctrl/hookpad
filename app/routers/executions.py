@@ -16,6 +16,7 @@ from core.executor import (
     list_executions_cursor,
 )
 from db.database import get_conn
+from core.history import clear_history
 
 router = APIRouter(prefix="/api/executions", tags=["executions"])
 
@@ -109,13 +110,8 @@ def clear_executions(script_id: Optional[str] = None):
     """
     Deleta execuções (e payloads em cascata via FK ON DELETE CASCADE).
     """
-    conn = get_conn()
-    if script_id:
-        conn.execute("DELETE FROM executions WHERE script_id=?", (script_id,))
-    else:
-        conn.execute("DELETE FROM executions")
-    conn.commit()
-    return {"ok": True}
+    deleted = clear_history(script_id=script_id, compact=True)
+    return {"ok": True, "deleted": deleted}
 
 
 # ─── Helper ───────────────────────────────────────────────────────────────────

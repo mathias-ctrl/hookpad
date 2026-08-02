@@ -22,6 +22,25 @@ def _to_json_str(value: Any) -> str:
         return str(value)
 
 
+
+def serialize_limited(value: Any, max_bytes: int) -> dict:
+    """Serializa para JSON sem persistir conteúdo ilimitado no banco.
+
+    Retorna o texto armazenável, tamanho original em bytes e flag de corte.
+    O corte é feito em bytes UTF-8 para respeitar o limite real em disco.
+    """
+    full = _to_json_str(value)
+    raw = full.encode("utf-8")
+    size = len(raw)
+    if size <= max_bytes:
+        return {"text": full, "size_bytes": size, "truncated": False}
+
+    marker = f"\n… [conteúdo truncado: {size} bytes; limite armazenado: {max_bytes} bytes]"
+    marker_raw = marker.encode("utf-8")
+    keep = max(0, max_bytes - len(marker_raw))
+    prefix = raw[:keep].decode("utf-8", errors="ignore")
+    return {"text": prefix + marker, "size_bytes": size, "truncated": True}
+
 def make_preview(value: Any, limit: int = INPUT_PREVIEW_LIMIT) -> dict:
     """
     Serializa `value`, calcula tamanho e gera preview truncado.
