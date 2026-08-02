@@ -15,11 +15,12 @@ _local  = threading.local()
 def get_conn() -> sqlite3.Connection:
     """Retorna conexão thread-local com row_factory configurada."""
     if not hasattr(_local, "conn") or _local.conn is None:
-        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+        conn = sqlite3.connect(str(DB_PATH), timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=30000")
         _local.conn = conn
     return _local.conn
 

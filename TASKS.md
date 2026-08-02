@@ -192,3 +192,8 @@ O subprocesso Python não é uma barreira de segurança completa. Para código n
 3. Todo limite configurável deve ter teste de aplicação real.
 4. Toda tarefa em background deve ser idempotente e segura para múltiplas instâncias.
 5. Arquivos gerados (`__pycache__`, bancos, logs e builds) não devem entrar no pacote fonte.
+
+### [Concluído] Evitar `database is locked` ao limpar histórico
+- A limpeza agora usa conexão independente, `busy_timeout`, transação curta e retry exponencial.
+- A exclusão usa `ON DELETE CASCADE` e não monta listas gigantes de IDs.
+- `VACUUM` foi removido da rota HTTP porque exige lock exclusivo; compactação deve ser uma manutenção offline/agendada.

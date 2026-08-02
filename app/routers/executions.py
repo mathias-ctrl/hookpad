@@ -110,7 +110,7 @@ def clear_executions(script_id: Optional[str] = None):
     """
     Deleta execuções (e payloads em cascata via FK ON DELETE CASCADE).
     """
-    deleted = clear_history(script_id=script_id, compact=True)
+    deleted = clear_history(script_id=script_id, compact=False)
     return {"ok": True, "deleted": deleted}
 
 
