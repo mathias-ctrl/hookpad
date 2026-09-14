@@ -5,24 +5,56 @@ Entidades: folders, scripts, script_versions, executions, execution_payloads
 import json
 import sqlite3
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 from core.config import DATA_DIR
 
 DB_PATH = DATA_DIR / "hookpad.db"
 _local  = threading.local()
+_write_lock = threading.RLock()
+
+
+def _open_conn() -> sqlite3.Connection:
+    """Abre conexão SQLite em autocommit para evitar transações esquecidas segurando locks."""
+    conn = sqlite3.connect(
+        str(DB_PATH),
+        timeout=30.0,
+        check_same_thread=False,
+        isolation_level=None,  # autocommit; transações multi-statement usam write_transaction()
+    )
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=30000")
+    return conn
 
 
 def get_conn() -> sqlite3.Connection:
-    """Retorna conexão thread-local com row_factory configurada."""
+    """Retorna conexão thread-local configurada em autocommit."""
     if not hasattr(_local, "conn") or _local.conn is None:
-        conn = sqlite3.connect(str(DB_PATH), timeout=30.0, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA synchronous=NORMAL")
-        conn.execute("PRAGMA busy_timeout=30000")
-        _local.conn = conn
+        _local.conn = _open_conn()
     return _local.conn
+
+
+@contextmanager
+def write_transaction():
+    """
+    Serializa transações de escrita dentro do processo e garante rollback em erro.
+
+    SQLite suporta apenas um writer por vez. O lock em Python reduz a disputa entre
+    webhooks/workers do mesmo processo; BEGIN IMMEDIATE + busy_timeout cobre disputa
+    com manutenção ou outro processo/worker.
+    """
+    with _write_lock:
+        conn = get_conn()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            yield conn
+            conn.commit()
+        except Exception:
+            if conn.in_transaction:
+                conn.rollback()
+            raise
 
 
 DDL = """
@@ -152,6 +184,8 @@ INSERT OR IGNORE INTO settings(key, value) VALUES ('history_days', '30');
 def init_db():
     """Cria/migra tabelas mantendo compatibilidade com bancos existentes."""
     conn = get_conn()
+    # journal_mode é propriedade persistente do arquivo; configure uma vez no startup.
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(DDL)
     conn.commit()
 
