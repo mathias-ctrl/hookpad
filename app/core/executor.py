@@ -23,7 +23,7 @@ from core.preview import (
 from core.sandbox import execute_script
 from core.config import MAX_EXEC_PAYLOAD_BYTES, MAX_LOG_BYTES
 from core.utils import utcnow_iso
-from db.database import get_conn, row_to_dict
+from db.database import get_conn, row_to_dict, write_transaction
 
 # Inicializado pelo main.py
 _script_executor: concurrent.futures.ThreadPoolExecutor = None  # type: ignore
@@ -95,39 +95,37 @@ def create_execution(
     ip_info = make_preview(input_full, limit=INPUT_PREVIEW_LIMIT)
     input_stored = serialize_limited(input_full, MAX_EXEC_PAYLOAD_BYTES)
 
-    conn = get_conn()
-    conn.execute(
-        """INSERT INTO executions
-           (id, script_id, script_version_id, status, trigger_type,
-            request_method, request_path, ip, user_agent, request_id,
-            input_preview, input_truncated, input_size_bytes, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (
-            exec_id, script_id, script_version_id,
-            ExecStatus.QUEUED, trigger_type,
-            request_method, request_path,
-            ip, user_agent, exec_id,
-            ip_info["preview"],
-            1 if ip_info["truncated"] else 0,
-            ip_info["size_bytes"],
-            received_at,
-        ),
-    )
-    conn.execute(
-        """INSERT OR REPLACE INTO execution_payloads
-           (execution_id, input_full, request_headers, request_query, request_body)
-           VALUES (?,?,?,?,?)""",
-        (
-            exec_id,
-            input_stored["text"],
-            serialize_limited(request_headers, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_headers else None,
-            serialize_limited(request_query, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_query else None,
-            None,  # body já está em input_full; evita duplicação no SQLite
-        ),
-    )
-    conn.commit()
+    with write_transaction() as conn:
+        conn.execute(
+            """INSERT INTO executions
+               (id, script_id, script_version_id, status, trigger_type,
+                request_method, request_path, ip, user_agent, request_id,
+                input_preview, input_truncated, input_size_bytes, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                exec_id, script_id, script_version_id,
+                ExecStatus.QUEUED, trigger_type,
+                request_method, request_path,
+                ip, user_agent, exec_id,
+                ip_info["preview"],
+                1 if ip_info["truncated"] else 0,
+                ip_info["size_bytes"],
+                received_at,
+            ),
+        )
+        conn.execute(
+            """INSERT OR REPLACE INTO execution_payloads
+               (execution_id, input_full, request_headers, request_query, request_body)
+               VALUES (?,?,?,?,?)""",
+            (
+                exec_id,
+                input_stored["text"],
+                serialize_limited(request_headers, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_headers else None,
+                serialize_limited(request_query, min(MAX_EXEC_PAYLOAD_BYTES, 64 * 1024))["text"] if request_query else None,
+                None,
+            ),
+        )
 
-    # Notifica clientes SSE
     broadcaster.publish(EVENT_EXECUTION_CREATED, {
         "execution_id": exec_id,
         "script_id":    script_id,
@@ -150,12 +148,11 @@ def run_execution(
     Executa o script no sandbox, persiste output_full em execution_payloads,
     atualiza metadados leves em executions.
     """
-    conn = get_conn()
-    conn.execute(
-        "UPDATE executions SET status=?, started_at=? WHERE id=?",
-        (ExecStatus.RUNNING, utcnow_iso(), exec_id),
-    )
-    conn.commit()
+    with write_transaction() as conn:
+        conn.execute(
+            "UPDATE executions SET status=?, started_at=? WHERE id=?",
+            (ExecStatus.RUNNING, utcnow_iso(), exec_id),
+        )
 
     result = execute_script(
         script_id=script_id,
@@ -172,7 +169,6 @@ def run_execution(
     )
     http_status = 200 if status == ExecStatus.SUCCESS else 500
 
-    # Conteúdo da resposta para output
     response_body = result.get("result")
     if response_body is None and result.get("stdout"):
         response_body = result["stdout"]
@@ -196,47 +192,44 @@ def run_execution(
         if response_body is not None else None
     )
 
-    # Persiste payload de output
-    conn.execute(
-        "INSERT OR IGNORE INTO execution_payloads (execution_id) VALUES (?)",
-        (exec_id,),
-    )
-    conn.execute(
-        """UPDATE execution_payloads
-           SET output_full=?, response_body=?, stdout=?, stderr=?
-           WHERE execution_id=?""",
-        (
-            output_stored["text"],
-            response_stored,
-            (result.get("stdout") or "")[:MAX_LOG_BYTES] or None,
-            (result.get("stderr") or "")[:MAX_LOG_BYTES] or None,
-            exec_id,
-        ),
-    )
+    with write_transaction() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO execution_payloads (execution_id) VALUES (?)",
+            (exec_id,),
+        )
+        conn.execute(
+            """UPDATE execution_payloads
+               SET output_full=?, response_body=?, stdout=?, stderr=?
+               WHERE execution_id=?""",
+            (
+                output_stored["text"],
+                response_stored,
+                (result.get("stdout") or "")[:MAX_LOG_BYTES] or None,
+                (result.get("stderr") or "")[:MAX_LOG_BYTES] or None,
+                exec_id,
+            ),
+        )
 
-    # Atualiza metadados leves
-    conn.execute(
-        """UPDATE executions SET
-               status=?, response_status=?,
-               error_message=?, error_type=?,
-               output_preview=?, output_truncated=?, output_size_bytes=?,
-               finished_at=?, duration_ms=?
-           WHERE id=?""",
-        (
-            status, http_status,
-            result.get("error_message"),
-            result.get("error_type"),
-            op_info["preview"],
-            1 if op_info["truncated"] else 0,
-            op_info["size_bytes"],
-            result.get("finished_at"),
-            result.get("duration_ms"),
-            exec_id,
-        ),
-    )
-    conn.commit()
+        conn.execute(
+            """UPDATE executions SET
+                   status=?, response_status=?,
+                   error_message=?, error_type=?,
+                   output_preview=?, output_truncated=?, output_size_bytes=?,
+                   finished_at=?, duration_ms=?
+               WHERE id=?""",
+            (
+                status, http_status,
+                result.get("error_message"),
+                result.get("error_type"),
+                op_info["preview"],
+                1 if op_info["truncated"] else 0,
+                op_info["size_bytes"],
+                result.get("finished_at"),
+                result.get("duration_ms"),
+                exec_id,
+            ),
+        )
 
-    # Notifica clientes SSE
     broadcaster.publish(EVENT_EXECUTION_UPDATED, {
         "execution_id": exec_id,
         "script_id":    script_id,
@@ -251,7 +244,6 @@ def run_execution(
 
 
 def get_execution(exec_id: str) -> Optional[dict]:
-    """Metadados + previews sem payload."""
     conn = get_conn()
     row  = conn.execute(
         f"SELECT {_LIST_FIELDS} FROM executions WHERE id=?", (exec_id,)
@@ -260,7 +252,6 @@ def get_execution(exec_id: str) -> Optional[dict]:
 
 
 def get_execution_payload(exec_id: str) -> Optional[dict]:
-    """Payload completo (input_full + output_full + raw fields)."""
     conn = get_conn()
     row  = conn.execute(
         "SELECT * FROM execution_payloads WHERE execution_id=?", (exec_id,)
@@ -283,10 +274,6 @@ def list_executions_cursor(
     limit: int = 20,
     cursor: Optional[str] = None,
 ) -> dict:
-    """
-    Paginação por cursor (created_at DESC, id DESC).
-    Retorna {items, next_cursor, has_more}.
-    """
     limit = min(max(1, limit), 100)
     conn  = get_conn()
 
@@ -305,7 +292,7 @@ def list_executions_cursor(
             clauses.append("(created_at < ? OR (created_at = ? AND id < ?))")
             vals.extend([cur_ts, cur_ts, cur_id])
         except ValueError:
-            pass  # cursor inválido → começa do topo
+            pass
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
 
@@ -321,14 +308,12 @@ def list_executions_cursor(
     return {"items": items, "next_cursor": next_cursor, "has_more": has_more}
 
 
-# compat shim — usado pelo scheduler e test_run que ainda chamam a assinatura antiga
 def list_executions(
     script_id: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     status: Optional[str] = None,
 ) -> list[dict]:
-    """Legacy offset-based list — use list_executions_cursor para novos endpoints."""
     conn = get_conn()
     clauses: list[str] = []
     vals: list = []
