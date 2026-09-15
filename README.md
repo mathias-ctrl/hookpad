@@ -1,4 +1,4 @@
-# HookPad 
+# HookPad
 
 Execute scripts Python como webhooks com editor Monaco, auto-install de dependências, venv isolado por script e autenticação por token.
 
@@ -171,3 +171,11 @@ Todos os endpoints exigem o header `X-Admin-Token: SEU_ADMIN_TOKEN`.
 | `POST` | `/api/scripts/{id}/test` | Executa script com params de teste |
 | `GET` | `/api/scripts/{id}/history` | Histórico de execuções |
 | `GET` | `/api/scripts/{id}/signature` | Detecta params do `def main()` |
+
+---
+
+## Desenvolvimento
+
+A branch `improved` concentra a arquitetura mais nova do projeto e é promovida para `main` em versões estáveis. Consulte [`TASKS.md`](TASKS.md) para problemas conhecidos, melhorias futuras, prioridades e critérios de conclusão.
+
+O pacote fonte não deve conter `__pycache__`, arquivos `.pyc`, banco local, logs, ambientes virtuais ou segredos. As exclusões estão registradas em `.gitignore`.
